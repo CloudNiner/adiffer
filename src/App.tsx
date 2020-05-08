@@ -1,11 +1,18 @@
 import React from 'react';
+
+import styled from 'styled-components/macro'
+
 import logo from './logo.svg';
 import './App.css';
+
+const StyledHeader = styled.header`
+  background-color: brown;
+`;
 
 function App() {
   return (
     <div className="App">
-      <header className="App-header">
+      <StyledHeader className="App-header">
         <img src={logo} className="App-logo" alt="logo" />
         <p>
           Edit <code>src/App.tsx</code> and save to reload.
@@ -18,7 +25,7 @@ function App() {
         >
           Learn React
         </a>
-      </header>
+      </StyledHeader>
     </div>
   );
 }
