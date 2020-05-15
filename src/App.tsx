@@ -1,32 +1,38 @@
 import React from 'react';
+import { Box } from '@material-ui/core';
 
-import styled from 'styled-components/macro'
+import { makeStyles } from '@material-ui/core/styles';
 
-import logo from './logo.svg';
-import './App.css';
+import Controls from './Sections/Controls';
 
-const StyledHeader = styled.header`
-  background-color: brown;
-`;
+const useStyles = makeStyles((theme) => ({
+  windowBox: {
+    display: 'flex',
+    minHeight: '100vh',
+    flexDirection: 'column',
+    flex: 1,
+
+    '@media (min-width: 768px)': {
+      flexDirection: 'row',
+    }
+  },
+  controlsBox: {
+    flex: '0 0 24em',
+  },
+  mapBox: {
+    flex: 1,
+  }
+}));
 
 function App() {
+  const classes = useStyles();
   return (
-    <div className="App">
-      <StyledHeader className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.tsx</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </StyledHeader>
-    </div>
+    <Box mx={2} className={classes.windowBox}>
+      <Controls className={classes.controlsBox} />
+      <Box className={classes.mapBox}>
+
+      </Box>
+    </Box>
   );
 }
 

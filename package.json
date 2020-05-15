@@ -1,5 +1,5 @@
 {
-  "name": "yield",
+  "name": "adiffer",
   "version": "0.1.0",
   "private": true,
   "dependencies": {
@@ -16,7 +16,6 @@
     "react": "^16.13.1",
     "react-dom": "^16.13.1",
     "react-scripts": "3.4.1",
-    "styled-components": "^5.1.0",
     "typescript": "~3.7.2"
   },
   "scripts": {
@@ -40,7 +39,5 @@
       "last 1 safari version"
     ]
   },
-  "devDependencies": {
-    "babel-plugin-styled-components": "^1.10.7"
-  }
+  "devDependencies": {}
 }
