@@ -4,6 +4,7 @@ import { Box } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
 
 import Controls from './Sections/Controls';
+import Map from './Sections/Map';
 
 const useStyles = makeStyles((theme) => ({
   windowBox: {
@@ -27,11 +28,11 @@ const useStyles = makeStyles((theme) => ({
 function App() {
   const classes = useStyles();
   return (
-    <Box mx={2} className={classes.windowBox}>
-      <Controls className={classes.controlsBox} />
-      <Box className={classes.mapBox}>
-
+    <Box className={classes.windowBox}>
+      <Box mx={2}  className={classes.controlsBox}>
+        <Controls />
       </Box>
+      <Map className={classes.mapBox} />
     </Box>
   );
 }

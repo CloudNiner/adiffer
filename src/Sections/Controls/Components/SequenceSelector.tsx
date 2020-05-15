@@ -10,7 +10,7 @@ const useStyles = makeStyles((theme) => ({
   }
 }));
 
-const SequenceSelector = ({}) => {
+const SequenceSelector = () => {
   const classes = useStyles();
   const goButton = <Button>Go</Button>;
   return (
