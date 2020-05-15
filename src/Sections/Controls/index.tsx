@@ -16,7 +16,7 @@ const Controls: React.FC<Props> = ({className}) => {
         <h1>ADiffer</h1>
         <Button variant="contained" startIcon={<InfoIcon />}>Help</Button>
       </Box>
-      <SequenceSelector />
+      <SequenceSelector onChange={(sequenceId) => alert(`Sequence ID: ${sequenceId}`)} />
     </Box>
   );
 }
