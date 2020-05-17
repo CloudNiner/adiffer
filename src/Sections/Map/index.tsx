@@ -1,9 +1,11 @@
 import React, { Component } from 'react';
 
+import { FeatureCollection, Geometry, GeoJsonProperties } from 'geojson';
 import mapboxgl from 'mapbox-gl';
 
 type MapProps = {
   className?: string,
+  geojsonLayer: FeatureCollection<Geometry, GeoJsonProperties>,
 }
 
 type MapState = {
@@ -15,6 +17,8 @@ type MapState = {
 class Map extends Component<MapProps, MapState> {
 
   mapRef: HTMLDivElement | null = null;
+  map: mapboxgl.Map | null = null;
+  geojsonLayerName = 'geojson-layer';
 
   constructor(props: MapProps) {
     super(props);
@@ -32,6 +36,24 @@ class Map extends Component<MapProps, MapState> {
     }
   };
 
+  componentDidUpdate(prevProps: MapProps) {
+    if (this.map && this.map.isStyleLoaded() && this.props.geojsonLayer !== prevProps.geojsonLayer) {
+      this.map.removeLayer(this.geojsonLayerName);
+      this.map.addLayer({
+        id: this.geojsonLayerName,
+        type: 'fill',
+        paint: {
+          'fill-color': 'rgba(0, 0, 0, 1)',
+          'fill-opacity': 0.8,
+        },
+        source: {
+          type: 'geojson',
+          data: this.props.geojsonLayer
+        }
+      });
+    }
+  }
+
   render() {
     const { className } = this.props;
     return (
@@ -40,19 +62,21 @@ class Map extends Component<MapProps, MapState> {
   }
 
   private initializeMap(element: HTMLElement) {
-    const map = new mapboxgl.Map({
+    this.map = new mapboxgl.Map({
       container: element,
       style: 'https://api.maptiler.com/maps/streets/style.json?key=JFXtmA3oBSUWi4wQGXSN',
       center: [this.state.centerLng, this.state.centerLat],
       zoom: this.state.zoom
     });
 
-    map.on('move', () => {
-      this.setState({
-        centerLng: map.getCenter().lng,
-        centerLat: map.getCenter().lat,
-        zoom: map.getZoom()
-      });
+    this.map.on('move', () => {
+      if (this.map) {
+        this.setState({
+          centerLng: this.map.getCenter().lng,
+          centerLat: this.map.getCenter().lat,
+          zoom: this.map.getZoom()
+        });
+      }
     });
   }
 }
