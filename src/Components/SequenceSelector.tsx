@@ -2,10 +2,16 @@ import React, { useState, ChangeEvent } from 'react';
 
 import 'date-fns';
 import DateFnsUtils from '@date-io/date-fns';
-import { Box, Button, InputAdornment, TextField, Typography } from '@material-ui/core';
+import { Box, Button, InputAdornment, TextField } from '@material-ui/core';
 import { KeyboardDateTimePicker, MuiPickersUtilsProvider } from '@material-ui/pickers';
 import { makeStyles } from '@material-ui/core/styles';
 import SearchIcon from '@material-ui/icons/Search';
+
+import {
+  dateToSequence,
+  isSequenceValid,
+  sequenceToDate
+} from '../osm';
 
 type SequenceSelectorProps = {
   onChange: (sequenceId: string) => void,
@@ -16,27 +22,6 @@ const useStyles = makeStyles((theme) => ({
     marginRight: theme.spacing(1),
   },
 }));
-
-const osmEpoch = 1347432900;
-
-const dateToSequence = (date: Date): string => {
-  const epoch = Math.floor(date.getTime() / 1000);
-  return Math.floor(((epoch - osmEpoch) / 60)).toString();
-}
-
-const sequenceToDate = (sequence: string): Date | null => {
-  const sequenceInt = parseInt(sequence, 10);
-  if (isNaN(sequenceInt) || sequenceInt < 0) {
-    return null;
-  }
-  const epoch = sequenceInt * 60 + osmEpoch;
-  return new Date(epoch * 1000);
-}
-
-const isSequenceValid = (sequence: string): boolean => {
-  const sequenceDate = sequenceToDate(sequence);
-  return Boolean(sequenceDate) && sequenceDate!.getTime() < new Date().getTime();
-}
 
 const SequenceSelector: React.FC<SequenceSelectorProps> = ({onChange}) => {
   const classes = useStyles();
