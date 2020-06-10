@@ -17,7 +17,7 @@
     "@types/react-dom": "^16.9.0",
     "date-fns": "^2.13.0",
     "mapbox-gl": "^1.10.0",
-    "osmtogeojson": "^3.0.0-beta.4",
+    "osmtogeojson": "cloudniner/osmtogeojson#c48bcbd99d79aee9656521b225d764f4afce020c",
     "react": "^16.13.1",
     "react-dom": "^16.13.1",
     "react-scripts": "3.4.1",

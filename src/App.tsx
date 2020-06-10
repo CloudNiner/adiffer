@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 
-import {FeatureCollection, Geometry, GeoJsonProperties} from 'geojson';
+import {Feature, FeatureCollection, Geometry} from 'geojson';
 import { Box } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
 
-import { getAugmentedDiff } from './osm';
+import { getAugmentedDiff, OsmObjectProperties } from './osm';
 import Header from './Components/Header';
 import SequenceSelector from './Components/SequenceSelector';
 import Map from './Sections/Map';
@@ -30,15 +30,33 @@ const useStyles = makeStyles((theme) => ({
   }
 }));
 
-const emptyFeatureCollection: FeatureCollection<Geometry, GeoJsonProperties> =
+const emptyFeatureCollection: FeatureCollection<Geometry, OsmObjectProperties> =
   {type: 'FeatureCollection', features: []};
 
 function App() {
   const classes = useStyles();
-  const [features, setFeatures] = useState<FeatureCollection<Geometry, GeoJsonProperties>>(emptyFeatureCollection);
+  const [oldFeatures, setOldFeatures] = useState<FeatureCollection<Geometry, OsmObjectProperties>>(emptyFeatureCollection);
+  const [newFeatures, setNewFeatures] = useState<FeatureCollection<Geometry, OsmObjectProperties>>(emptyFeatureCollection);
 
   const onSequenceChange = (sequenceId: string) => {
-    getAugmentedDiff(sequenceId).then((data) => setFeatures(data));
+    getAugmentedDiff(sequenceId).then(({created, modified, deleted}) => {
+      // const newFeatures = [created, modified]
+      //   .flat(2)
+      //   .map((d) => d.new)
+      //   .filter((f): f is Feature<Geometry, OsmObjectProperties> => f !== null);
+      // setNewFeatures({
+      //   type: "FeatureCollection",
+      //   features: newFeatures
+      // });
+      const oldFeatures = [modified, deleted]
+        .flat(2)
+        .map((d) => d.old)
+        .filter((f): f is Feature<Geometry, OsmObjectProperties> => f !== null);
+      setOldFeatures({
+        type: "FeatureCollection",
+        features: oldFeatures
+      });
+    });
   }
 
   return (
@@ -47,7 +65,7 @@ function App() {
         <Header />
         <SequenceSelector onChange={onSequenceChange} />
       </Box>
-      <Map className={classes.mapBox} geojsonLayer={features}/>
+      <Map className={classes.mapBox} newObjects={newFeatures} oldObjects={oldFeatures}/>
     </Box>
   );
 }
