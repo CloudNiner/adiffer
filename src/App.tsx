@@ -40,14 +40,14 @@ function App() {
 
   const onSequenceChange = (sequenceId: string) => {
     getAugmentedDiff(sequenceId).then(({created, modified, deleted}) => {
-      // const newFeatures = [created, modified]
-      //   .flat(2)
-      //   .map((d) => d.new)
-      //   .filter((f): f is Feature<Geometry, OsmObjectProperties> => f !== null);
-      // setNewFeatures({
-      //   type: "FeatureCollection",
-      //   features: newFeatures
-      // });
+      const newFeatures = [created, modified]
+        .flat(2)
+        .map((d) => d.new)
+        .filter((f): f is Feature<Geometry, OsmObjectProperties> => f !== null);
+      setNewFeatures({
+        type: "FeatureCollection",
+        features: newFeatures
+      });
       const oldFeatures = [modified, deleted]
         .flat(2)
         .map((d) => d.old)
