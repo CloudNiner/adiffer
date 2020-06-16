@@ -9,8 +9,8 @@ import config from "../../config";
 
 type MapProps = {
   className?: string;
-  oldObjects: FeatureCollection<Geometry, OsmObjectProperties>;
-  newObjects: FeatureCollection<Geometry, OsmObjectProperties>;
+  created: FeatureCollection<Geometry, OsmObjectProperties>;
+  deleted: FeatureCollection<Geometry, OsmObjectProperties>;
 };
 
 const Map = ReactMapboxGl({ accessToken: "" });
@@ -35,68 +35,87 @@ const linePaint = (overrides: LinePaint) => {
   const defaults: LinePaint = { "line-color": "#FFFFFF", "line-width": 2 };
   return Object.assign({}, defaults, overrides);
 };
-const newColor = "#00FF00";
+const createdColor = "#00FF00";
 
-const newLayerFillPaint = fillPaint({ "fill-color": newColor });
+const createdLayerFillPaint = fillPaint({ "fill-color": createdColor });
 
-const newLayerLinePaint = linePaint({ "line-color": newColor });
+const createdLayerLinePaint = linePaint({ "line-color": createdColor });
 
-const newLayerCirclePaint = circlePaint({
-  "circle-color": newColor,
-  "circle-stroke-color": newColor,
+const createdLayerCirclePaint = circlePaint({
+  "circle-color": createdColor,
+  "circle-stroke-color": createdColor,
 });
 
-const oldColor = "#FF0000";
+const deletedColor = "#FF0000";
 
-const oldLayerFillPaint = fillPaint({ "fill-color": oldColor });
+const deletedLayerFillPaint = fillPaint({ "fill-color": deletedColor });
 
-const oldLayerLinePaint = linePaint({ "line-color": oldColor });
+const deletedLayerLinePaint = linePaint({ "line-color": deletedColor });
 
-const oldLayerCirclePaint = circlePaint({
-  "circle-color": oldColor,
-  "circle-stroke-color": oldColor,
+const deletedLayerCirclePaint = circlePaint({
+  "circle-color": deletedColor,
+  "circle-stroke-color": deletedColor,
 });
 
-const AugmentedDiffMap: React.FC<MapProps> = ({ className, newObjects, oldObjects }) => {
-  const newSource = {
+const AugmentedDiffMap: React.FC<MapProps> = ({
+  className,
+  created,
+  deleted,
+}) => {
+  const createdSource = {
     type: "geojson",
-    data: newObjects,
+    data: created,
   };
 
-  const oldSource = {
+  const deletedSource = {
     type: "geojson",
-    data: oldObjects,
+    data: deleted,
   };
 
   if (!config.maptilerApiKey) {
-    throw new Error('REACT_APP_MAPTILER_API_KEY required!');
+    throw new Error("REACT_APP_MAPTILER_API_KEY required!");
   }
   const styleUrl = `https://api.maptiler.com/maps/streets/style.json?key=${config.maptilerApiKey}`;
 
   return (
-    <Map
-      center={[0, 0]}
-      className={className}
-      style={styleUrl}
-      zoom={[2]}
-    >
-      <Source id="oldObjects" geoJsonSource={oldSource}></Source>
-      <Layer id="oldObjectsFill" sourceId="oldObjects" type="fill" paint={oldLayerFillPaint} />
-      <Layer id="oldObjectsLine" sourceId="oldObjects" type="line" paint={oldLayerLinePaint} />
+    <Map center={[0, 0]} className={className} style={styleUrl} zoom={[2]}>
+      <Source id="deletedObjects" geoJsonSource={deletedSource}></Source>
       <Layer
-        id="oldObjectsCircle"
-        sourceId="oldObjects"
-        type="circle"
-        paint={oldLayerCirclePaint}
+        id="deletedObjectsFill"
+        sourceId="deletedObjects"
+        type="fill"
+        paint={deletedLayerFillPaint}
       />
-      <Source id="newObjects" geoJsonSource={newSource}></Source>
-      <Layer id="newObjectsFill" sourceId="newObjects" type="fill" paint={newLayerFillPaint} />
-      <Layer id="newObjectsLine" sourceId="newObjects" type="line" paint={newLayerLinePaint} />
       <Layer
-        id="newObjectsCircle"
-        sourceId="newObjects"
+        id="deletedObjectsLine"
+        sourceId="deletedObjects"
+        type="line"
+        paint={deletedLayerLinePaint}
+      />
+      <Layer
+        id="deletedObjectsCircle"
+        sourceId="deletedObjects"
         type="circle"
-        paint={newLayerCirclePaint}
+        paint={deletedLayerCirclePaint}
+      />
+      <Source id="createdObjects" geoJsonSource={createdSource}></Source>
+      <Layer
+        id="createdObjectsFill"
+        sourceId="createdObjects"
+        type="fill"
+        paint={createdLayerFillPaint}
+      />
+      <Layer
+        id="createdObjectsLine"
+        sourceId="createdObjects"
+        type="line"
+        paint={createdLayerLinePaint}
+      />
+      <Layer
+        id="createdObjectsCircle"
+        sourceId="createdObjects"
+        type="circle"
+        paint={createdLayerCirclePaint}
       />
     </Map>
   );
