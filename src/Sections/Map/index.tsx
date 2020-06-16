@@ -1,10 +1,11 @@
 import React from "react";
 
 import { FeatureCollection, Geometry } from "geojson";
-import { FillPaint, LinePaint, CirclePaint } from 'mapbox-gl';
+import { FillPaint, LinePaint, CirclePaint } from "mapbox-gl";
 import ReactMapboxGl, { Layer, Source } from "react-mapbox-gl";
 
 import { OsmObjectProperties } from "../../osm";
+import config from "../../config";
 
 type MapProps = {
   className?: string;
@@ -33,22 +34,28 @@ const fillPaint = (overrides: FillPaint) => {
 const linePaint = (overrides: LinePaint) => {
   const defaults: LinePaint = { "line-color": "#FFFFFF", "line-width": 2 };
   return Object.assign({}, defaults, overrides);
-}
+};
 const newColor = "#00FF00";
 
-const newLayerFillPaint = fillPaint({"fill-color": newColor});
+const newLayerFillPaint = fillPaint({ "fill-color": newColor });
 
-const newLayerLinePaint = linePaint({"line-color": newColor});
+const newLayerLinePaint = linePaint({ "line-color": newColor });
 
-const newLayerCirclePaint = circlePaint({"circle-color": newColor, "circle-stroke-color": newColor});
+const newLayerCirclePaint = circlePaint({
+  "circle-color": newColor,
+  "circle-stroke-color": newColor,
+});
 
 const oldColor = "#FF0000";
 
-const oldLayerFillPaint = fillPaint({"fill-color": oldColor});
+const oldLayerFillPaint = fillPaint({ "fill-color": oldColor });
 
-const oldLayerLinePaint = linePaint({"line-color": oldColor});
+const oldLayerLinePaint = linePaint({ "line-color": oldColor });
 
-const oldLayerCirclePaint = circlePaint({"circle-color": oldColor, "circle-stroke-color": oldColor});
+const oldLayerCirclePaint = circlePaint({
+  "circle-color": oldColor,
+  "circle-stroke-color": oldColor,
+});
 
 const AugmentedDiffMap: React.FC<MapProps> = ({ className, newObjects, oldObjects }) => {
   const newSource = {
@@ -61,11 +68,16 @@ const AugmentedDiffMap: React.FC<MapProps> = ({ className, newObjects, oldObject
     data: oldObjects,
   };
 
+  if (!config.maptilerApiKey) {
+    throw new Error('REACT_APP_MAPTILER_API_KEY required!');
+  }
+  const styleUrl = `https://api.maptiler.com/maps/streets/style.json?key=${config.maptilerApiKey}`;
+
   return (
     <Map
       center={[0, 0]}
       className={className}
-      style={"https://api.maptiler.com/maps/streets/style.json?key=JFXtmA3oBSUWi4wQGXSN"}
+      style={styleUrl}
       zoom={[2]}
     >
       <Source id="oldObjects" geoJsonSource={oldSource}></Source>
