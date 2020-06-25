@@ -9,27 +9,27 @@ import {
   FormLabel,
 } from "@material-ui/core";
 
-import { ADiffAction } from "../osm";
+import { OsmObject } from "../osm";
 
-type ActionSelectorProps = {
+type OsmObjectSelectorProps = {
   className?: string;
-  defaultState: ActionSelectorState;
-  onChange: (state: ActionSelectorState) => void;
+  defaultState: OsmObjectSelectorState;
+  onChange: (state: OsmObjectSelectorState) => void;
 };
 
-export type ActionSelectorState = {
-  [ADiffAction.Create]: boolean;
-  [ADiffAction.Modify]: boolean;
-  [ADiffAction.Delete]: boolean;
+export type OsmObjectSelectorState = {
+  [OsmObject.Node]: boolean;
+  [OsmObject.Way]: boolean;
+  [OsmObject.Relation]: boolean;
 };
 
-const ActionSelector: React.FC<ActionSelectorProps> = ({
+const ActionSelector: React.FC<OsmObjectSelectorProps> = ({
   className,
   defaultState,
   onChange,
 }) => {
-  const [state, setState] = useState<ActionSelectorState>(defaultState);
-  const { create, modify, delete: deleted } = state;
+  const [state, setState] = useState<OsmObjectSelectorState>(defaultState);
+  const { node, way, relation } = state;
 
   const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const newState = { ...state, [event.target.name]: event.target.checked };
@@ -39,35 +39,35 @@ const ActionSelector: React.FC<ActionSelectorProps> = ({
   return (
     <Box className={className}>
       <FormControl component="fieldset">
-        <FormLabel component="legend">Action Type</FormLabel>
+        <FormLabel component="legend">OSM Object Type</FormLabel>
         <FormGroup aria-label="osm action type" row>
           <FormControlLabel
-            label="Create"
+            label="Nodes"
             control={
               <Checkbox
-                checked={create}
+                checked={node}
                 onChange={handleChange}
-                name={ADiffAction.Create}
+                name={OsmObject.Node}
               />
             }
           />
           <FormControlLabel
-            label="Modify"
+            label="Ways"
             control={
               <Checkbox
-                checked={modify}
+                checked={way}
                 onChange={handleChange}
-                name={ADiffAction.Modify}
+                name={OsmObject.Way}
               />
             }
           />
           <FormControlLabel
-            label="Delete"
+            label="Relations"
             control={
               <Checkbox
-                checked={deleted}
+                checked={relation}
                 onChange={handleChange}
-                name={ADiffAction.Delete}
+                name={OsmObject.Relation}
               />
             }
           />

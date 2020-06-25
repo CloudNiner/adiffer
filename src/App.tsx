@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 
-import { Feature, FeatureCollection, Geometry } from "geojson";
+import { Feature, Geometry } from "geojson";
 import { Box, Divider } from "@material-ui/core";
 import { makeStyles } from "@material-ui/core/styles";
 
@@ -11,6 +11,9 @@ import ActionSelector, {
 import Header from "./Components/Header";
 import SequenceSelector from "./Components/SequenceSelector";
 import Map from "./Sections/Map";
+import OsmObjectSelector, {
+  OsmObjectSelectorState,
+} from "./Components/OsmObjectSelector";
 
 const useStyles = makeStyles((theme) => ({
   windowBox: {
@@ -33,6 +36,18 @@ const useStyles = makeStyles((theme) => ({
   },
 }));
 
+const defaultActions: ActionSelectorState = {
+  create: true,
+  modify: true,
+  delete: true,
+};
+
+const defaultObjects: OsmObjectSelectorState = {
+  node: true,
+  way: true,
+  relation: false,
+};
+
 function App() {
   const classes = useStyles();
   const [augmentedDiff, setAugmentedDiff] = useState<AugmentedDiff>({
@@ -40,18 +55,12 @@ function App() {
     modified: [],
     deleted: [],
   });
-  const [created, setCreated] = useState<
-    FeatureCollection<Geometry, OsmObjectProperties>
-  >({
-    type: "FeatureCollection",
-    features: [],
-  });
-  const [deleted, setDeleted] = useState<
-    FeatureCollection<Geometry, OsmObjectProperties>
-  >({
-    type: "FeatureCollection",
-    features: [],
-  });
+  const [selectedActions, setSelectedActions] = useState<ActionSelectorState>(
+    defaultActions
+  );
+  const [selectedObjects, setSelectedObjects] = useState<
+    OsmObjectSelectorState
+  >(defaultObjects);
 
   const isAugmentedDiffValid = !!(
     augmentedDiff.created.length ||
@@ -59,52 +68,49 @@ function App() {
     augmentedDiff.modified.length
   );
 
+  const createdFeatures: Feature<
+    Geometry,
+    OsmObjectProperties
+  >[] = selectedActions.create
+    ? augmentedDiff.created
+        .map((f) => f.new)
+        .filter((f): f is Feature<Geometry, OsmObjectProperties> => f !== null)
+        .filter((f) => selectedObjects[f.properties.type])
+    : [];
+
+  const deletedFeatures: Feature<
+    Geometry,
+    OsmObjectProperties
+  >[] = selectedActions.delete
+    ? augmentedDiff.deleted
+        .map((f) => f.old)
+        .filter((f): f is Feature<Geometry, OsmObjectProperties> => f !== null)
+        .filter((f) => selectedObjects[f.properties.type])
+    : [];
+
+  // const modifiedFeatures: Feature<
+  //   Geometry,
+  //   OsmObjectProperties
+  // >[] = selectedActions.modify
+  //   ? augmentedDiff.modified
+  //       .map((f) => f.new)
+  //       .filter((f): f is Feature<Geometry, OsmObjectProperties> => f !== null)
+  //       .filter((f) => selectedObjects[f.properties.type])
+  //   : [];
+
+  // Why do we render twice?
+  console.log("created", createdFeatures);
+  console.log("deleted", deletedFeatures);
+
   const onSequenceChange = (sequenceId: string) => {
-    getAugmentedDiff(sequenceId).then((newADiff) => {
-      setAugmentedDiff(newADiff);
-      const { created: c, deleted: d } = newADiff;
-      const createdFeatures = c
-        .map((f) => f.new)
-        .filter((f): f is Feature<Geometry, OsmObjectProperties> => f !== null);
-      setCreated({
-        type: "FeatureCollection",
-        features: createdFeatures,
-      });
-      const deletedFeatures = d
-        .map((f) => f.old)
-        .filter((f): f is Feature<Geometry, OsmObjectProperties> => f !== null);
-      setDeleted({
-        type: "FeatureCollection",
-        features: deletedFeatures,
-      });
-    });
+    getAugmentedDiff(sequenceId).then((newADiff) => setAugmentedDiff(newADiff));
   };
 
-  const onActionChanged = (actions: ActionSelectorState) => {
-    if (actions.create) {
-      const createdFeatures = augmentedDiff.created
-        .map((f) => f.new)
-        .filter((f): f is Feature<Geometry, OsmObjectProperties> => f !== null);
-      setCreated({
-        type: "FeatureCollection",
-        features: createdFeatures,
-      });
-    } else {
-      setCreated({ type: "FeatureCollection", features: [] });
-    }
+  const onActionChanged = (state: ActionSelectorState) =>
+    setSelectedActions(state);
 
-    if (actions.delete) {
-      const deletedFeatures = augmentedDiff.deleted
-        .map((f) => f.old)
-        .filter((f): f is Feature<Geometry, OsmObjectProperties> => f !== null);
-      setDeleted({
-        type: "FeatureCollection",
-        features: deletedFeatures,
-      });
-    } else {
-      setDeleted({ type: "FeatureCollection", features: [] });
-    }
-  };
+  const onOsmObjectChanged = (state: OsmObjectSelectorState) =>
+    setSelectedObjects(state);
 
   return (
     <Box className={classes.windowBox}>
@@ -116,11 +122,22 @@ function App() {
             <Box my={3}>
               <Divider />
             </Box>
-            <ActionSelector onActionChanged={onActionChanged} />
+            <ActionSelector
+              defaultState={defaultActions}
+              onChange={onActionChanged}
+            />
+            <OsmObjectSelector
+              defaultState={defaultObjects}
+              onChange={onOsmObjectChanged}
+            />
           </>
         )}
       </Box>
-      <Map className={classes.mapBox} created={created} deleted={deleted} />
+      <Map
+        className={classes.mapBox}
+        created={{ type: "FeatureCollection", features: createdFeatures }}
+        deleted={{ type: "FeatureCollection", features: deletedFeatures }}
+      />
     </Box>
   );
 }
