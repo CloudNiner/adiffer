@@ -85,18 +85,21 @@ const AugmentedDiffMap: React.FC<MapProps> = ({
         sourceId="deletedObjects"
         type="fill"
         paint={deletedLayerFillPaint}
+        filter={["==", "$type", "Polygon"]}
       />
       <Layer
         id="deletedObjectsLine"
         sourceId="deletedObjects"
         type="line"
         paint={deletedLayerLinePaint}
+        filter={["==", "$type", "LineString"]}
       />
       <Layer
         id="deletedObjectsCircle"
         sourceId="deletedObjects"
         type="circle"
         paint={deletedLayerCirclePaint}
+        filter={["==", "$type", "Point"]}
       />
       <Source id="createdObjects" geoJsonSource={createdSource}></Source>
       <Layer
@@ -104,18 +107,21 @@ const AugmentedDiffMap: React.FC<MapProps> = ({
         sourceId="createdObjects"
         type="fill"
         paint={createdLayerFillPaint}
+        filter={["==", "$type", "Polygon"]}
       />
       <Layer
         id="createdObjectsLine"
         sourceId="createdObjects"
         type="line"
         paint={createdLayerLinePaint}
+        filter={["==", "$type", "LineString"]}
       />
       <Layer
         id="createdObjectsCircle"
         sourceId="createdObjects"
         type="circle"
         paint={createdLayerCirclePaint}
+        filter={["==", "$type", "Point"]}
       />
     </Map>
   );
