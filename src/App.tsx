@@ -1,10 +1,15 @@
 import React, { useState } from "react";
 
 import { Feature, Geometry } from "geojson";
-import { Box, Divider } from "@material-ui/core";
+import { Box, Button, Divider } from "@material-ui/core";
 import { makeStyles } from "@material-ui/core/styles";
 
-import { getAugmentedDiff, OsmObjectProperties, AugmentedDiff } from "./osm";
+import {
+  getAugmentedDiff,
+  isSequenceValid,
+  OsmObjectProperties,
+  AugmentedDiff,
+} from "./osm";
 import ADifferLegend from "./Components/ADifferLegend";
 import ActionSelector, {
   ActionSelectorState,
@@ -17,6 +22,29 @@ import OsmObjectSelector, {
 } from "./Components/OsmObjectSelector";
 
 const useStyles = makeStyles((theme) => ({
+  divider: {
+    marginTop: theme.spacing(3),
+    marginBottom: theme.spacing(3),
+  },
+  goButton: {
+    marginTop: theme.spacing(1),
+  },
+  legendBox: {
+    position: "absolute",
+    bottom: theme.spacing(4),
+    right: theme.spacing(2),
+    minWidth: theme.spacing(6),
+    backgroundColor: theme.palette.background.default,
+    padding: 0,
+  },
+  mapBox: {
+    flex: 1,
+  },
+  sidebarBox: {
+    flex: "0 0 24em",
+    display: "flex",
+    flexDirection: "column",
+  },
   windowBox: {
     display: "flex",
     minHeight: "100vh",
@@ -26,22 +54,6 @@ const useStyles = makeStyles((theme) => ({
     "@media (min-width: 768px)": {
       flexDirection: "row",
     },
-  },
-  sidebarBox: {
-    flex: "0 0 24em",
-    display: "flex",
-    flexDirection: "column",
-  },
-  mapBox: {
-    flex: 1,
-  },
-  legendBox: {
-    position: "absolute",
-    bottom: theme.spacing(4),
-    right: theme.spacing(2),
-    minWidth: theme.spacing(6),
-    backgroundColor: theme.palette.background.default,
-    padding: 0,
   },
 }));
 
@@ -70,6 +82,8 @@ function App() {
   const [selectedObjects, setSelectedObjects] = useState<
     OsmObjectSelectorState
   >(defaultObjects);
+  const [sequenceId, setSequenceId] = useState<string>("");
+  const [isLoading, setIsLoading] = useState<boolean>(false);
 
   const isAugmentedDiffValid = !!(
     augmentedDiff.created.length ||
@@ -138,8 +152,12 @@ function App() {
     console.log("old modified", oldModifiedFeatures);
   }
 
-  const onSequenceChange = (sequenceId: string) => {
-    getAugmentedDiff(sequenceId).then((newADiff) => setAugmentedDiff(newADiff));
+  const goButtonClicked = () => {
+    setIsLoading(true);
+    setAugmentedDiff({ created: [], modified: [], deleted: [] });
+    getAugmentedDiff(sequenceId)
+      .then((newADiff) => setAugmentedDiff(newADiff))
+      .finally(() => setIsLoading(false));
   };
 
   const onActionChanged = (state: ActionSelectorState) =>
@@ -152,12 +170,20 @@ function App() {
     <Box className={classes.windowBox}>
       <Box mx={2} className={classes.sidebarBox}>
         <Header />
-        <SequenceSelector onChange={onSequenceChange} />
+        <SequenceSelector onChange={setSequenceId} />
+        <Button
+          className={classes.goButton}
+          color="primary"
+          disabled={!isSequenceValid(sequenceId) || isLoading}
+          disableElevation
+          onClick={goButtonClicked}
+          variant="contained"
+        >
+          {isLoading ? "Loading..." : "Go"}
+        </Button>
         {isAugmentedDiffValid && (
           <>
-            <Box my={3}>
-              <Divider />
-            </Box>
+            <Divider className={classes.divider} />
             <ActionSelector
               defaultState={defaultActions}
               onChange={onActionChanged}
