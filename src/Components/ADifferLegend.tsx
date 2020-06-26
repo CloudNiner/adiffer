@@ -52,7 +52,9 @@ const legendItems: LegendItemProps[] = [
 ];
 
 const ADifferLegend: React.FC = () => {
-  const items = legendItems.map((props) => <LegendItem {...props} />);
+  const items = legendItems.map((props) => (
+    <LegendItem key={props.text} {...props} />
+  ));
   return (
     <List dense={true} disablePadding={true}>
       {items}
