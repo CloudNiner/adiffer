@@ -2,7 +2,7 @@ import React, { useState, ChangeEvent } from "react";
 
 import "date-fns";
 import DateFnsUtils from "@date-io/date-fns";
-import { Box, Button, InputAdornment, TextField } from "@material-ui/core";
+import { Box, InputAdornment, TextField } from "@material-ui/core";
 import {
   KeyboardDateTimePicker,
   MuiPickersUtilsProvider,
@@ -10,7 +10,7 @@ import {
 import { makeStyles } from "@material-ui/core/styles";
 import SearchIcon from "@material-ui/icons/Search";
 
-import { dateToSequence, isSequenceValid, sequenceToDate } from "../osm";
+import { dateToSequence, sequenceToDate } from "../osm";
 
 type SequenceSelectorProps = {
   onChange: (sequenceId: string) => void;
