@@ -27,7 +27,7 @@ const circlePaint = (overrides: CirclePaint) => {
 };
 
 const fillPaint = (overrides: FillPaint) => {
-  const defaults: FillPaint = { "fill-color": "#FFFFFF", "fill-opacity": 0.5 };
+  const defaults: FillPaint = { "fill-color": "#FFFFFF", "fill-opacity": 0.2 };
   return Object.assign({}, defaults, overrides);
 };
 
@@ -57,13 +57,31 @@ const deletedLayerCirclePaint = circlePaint({
   "circle-stroke-color": deletedColor,
 });
 
+const filterIsLine = [
+  "match",
+  ["geometry-type"],
+  ["LineString", "MultiLineString"],
+  true,
+  false,
+];
+
+const filterIsPolygon = [
+  "match",
+  ["geometry-type"],
+  ["Polygon", "MultiPolygon"],
+  true,
+  false,
+];
+
+const filterIsPoint = ["==", ["geometry-type"], "Point"];
+
 const AugmentedDiffMap: React.FC<MapProps> = ({
   className,
   created,
   deleted,
 }) => {
-  const [center, setCenter] = useState<[number, number]>([0, 0]);
-  const [zoom, setZoom] = useState<[number]>([2]);
+  const [center] = useState<[number, number]>([0, 0]);
+  const [zoom] = useState<[number]>([2]);
   const createdSource = {
     type: "geojson",
     data: created,
@@ -87,21 +105,21 @@ const AugmentedDiffMap: React.FC<MapProps> = ({
         sourceId="deletedObjects"
         type="fill"
         paint={deletedLayerFillPaint}
-        filter={["==", "$type", "Polygon"]}
+        filter={filterIsPolygon}
       />
       <Layer
         id="deletedObjectsLine"
         sourceId="deletedObjects"
         type="line"
         paint={deletedLayerLinePaint}
-        filter={["==", "$type", "LineString"]}
+        filter={filterIsLine}
       />
       <Layer
         id="deletedObjectsCircle"
         sourceId="deletedObjects"
         type="circle"
         paint={deletedLayerCirclePaint}
-        filter={["==", "$type", "Point"]}
+        filter={filterIsPoint}
       />
       <Source id="createdObjects" geoJsonSource={createdSource}></Source>
       <Layer
@@ -109,21 +127,21 @@ const AugmentedDiffMap: React.FC<MapProps> = ({
         sourceId="createdObjects"
         type="fill"
         paint={createdLayerFillPaint}
-        filter={["==", "$type", "Polygon"]}
+        filter={filterIsPolygon}
       />
       <Layer
         id="createdObjectsLine"
         sourceId="createdObjects"
         type="line"
         paint={createdLayerLinePaint}
-        filter={["==", "$type", "LineString"]}
+        filter={filterIsLine}
       />
       <Layer
         id="createdObjectsCircle"
         sourceId="createdObjects"
         type="circle"
         paint={createdLayerCirclePaint}
-        filter={["==", "$type", "Point"]}
+        filter={filterIsPoint}
       />
     </Map>
   );
