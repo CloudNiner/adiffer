@@ -116,7 +116,9 @@ const filterObjects = (
 export const getAugmentedDiff = (
   sequenceId: string
 ): Promise<AugmentedDiff> => {
-  return fetchAdiffStub(sequenceId).then((bodyText) => {
+  const fetchMethod =
+    process.env.NODE_ENV === "production" ? fetchAdiffString : fetchAdiffStub;
+  return fetchMethod(sequenceId).then((bodyText) => {
     console.log(bodyText.slice(0, 128));
     const parser = new DOMParser();
     const xmlDom = parser.parseFromString(bodyText, "application/xml");
