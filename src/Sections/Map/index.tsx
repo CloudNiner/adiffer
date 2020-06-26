@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 
 import { FeatureCollection, Geometry } from "geojson";
 import { FillPaint, LinePaint, CirclePaint } from "mapbox-gl";
@@ -62,6 +62,8 @@ const AugmentedDiffMap: React.FC<MapProps> = ({
   created,
   deleted,
 }) => {
+  const [center, setCenter] = useState<[number, number]>([0, 0]);
+  const [zoom, setZoom] = useState<[number]>([2]);
   const createdSource = {
     type: "geojson",
     data: created,
@@ -78,7 +80,7 @@ const AugmentedDiffMap: React.FC<MapProps> = ({
   const styleUrl = `https://api.maptiler.com/maps/streets/style.json?key=${config.maptilerApiKey}`;
 
   return (
-    <Map center={[0, 0]} className={className} style={styleUrl} zoom={[2]}>
+    <Map center={center} className={className} style={styleUrl} zoom={zoom}>
       <Source id="deletedObjects" geoJsonSource={deletedSource}></Source>
       <Layer
         id="deletedObjectsFill"
