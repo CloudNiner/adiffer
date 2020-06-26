@@ -5,6 +5,7 @@ import { Box, Divider } from "@material-ui/core";
 import { makeStyles } from "@material-ui/core/styles";
 
 import { getAugmentedDiff, OsmObjectProperties, AugmentedDiff } from "./osm";
+import ADifferLegend from "./Components/ADifferLegend";
 import ActionSelector, {
   ActionSelectorState,
 } from "./Components/ActionSelector";
@@ -33,6 +34,14 @@ const useStyles = makeStyles((theme) => ({
   },
   mapBox: {
     flex: 1,
+  },
+  legendBox: {
+    position: "absolute",
+    bottom: theme.spacing(4),
+    right: theme.spacing(2),
+    minWidth: theme.spacing(6),
+    backgroundColor: theme.palette.background.default,
+    padding: 0,
   },
 }));
 
@@ -177,6 +186,9 @@ function App() {
           features: tagsModifiedFeatures,
         }}
       />
+      <Box className={classes.legendBox}>
+        <ADifferLegend />
+      </Box>
     </Box>
   );
 }

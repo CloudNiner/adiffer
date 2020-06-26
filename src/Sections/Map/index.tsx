@@ -6,6 +6,7 @@ import ReactMapboxGl, { Layer, Source } from "react-mapbox-gl";
 
 import { OsmObjectProperties } from "../../osm";
 import config from "../../config";
+import theme from "../../theme";
 
 type MapProps = {
   className?: string;
@@ -38,7 +39,7 @@ const linePaint = (overrides: LinePaint) => {
   const defaults: LinePaint = { "line-color": "#FFFFFF", "line-width": 2 };
   return Object.assign({}, defaults, overrides);
 };
-const createdColor = "#faf797";
+const createdColor = theme.palette.osm.created;
 
 const createdLayerFillPaint = fillPaint({ "fill-color": createdColor });
 
@@ -49,7 +50,7 @@ const createdLayerCirclePaint = circlePaint({
   "circle-stroke-color": createdColor,
 });
 
-const deletedColor = "#ff3333";
+const deletedColor = theme.palette.osm.deleted;
 
 const deletedLayerFillPaint = fillPaint({ "fill-color": deletedColor });
 
@@ -60,7 +61,7 @@ const deletedLayerCirclePaint = circlePaint({
   "circle-stroke-color": deletedColor,
 });
 
-const modifiedOldColor = "#8b0000";
+const modifiedOldColor = theme.palette.osm.modifiedOld;
 
 const modifiedOldLayerFillPaint = fillPaint({ "fill-color": modifiedOldColor });
 
@@ -71,7 +72,7 @@ const modifiedOldLayerCirclePaint = circlePaint({
   "circle-stroke-color": modifiedOldColor,
 });
 
-const modifiedNewColor = "#90ee90";
+const modifiedNewColor = theme.palette.osm.modifiedNew;
 
 const modifiedNewLayerFillPaint = fillPaint({ "fill-color": modifiedNewColor });
 
@@ -82,7 +83,7 @@ const modifiedNewLayerCirclePaint = circlePaint({
   "circle-stroke-color": modifiedNewColor,
 });
 
-const modifiedTagsColor = "#608ba5";
+const modifiedTagsColor = theme.palette.osm.modifiedTags;
 
 const modifiedTagsLayerFillPaint = fillPaint({
   "fill-color": modifiedTagsColor,
