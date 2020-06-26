@@ -1,4 +1,5 @@
 import { Feature, FeatureCollection, Geometry, GeometryObject } from "geojson";
+import isEqual from "lodash.isequal";
 import osmtogeojson from "osmtogeojson";
 
 import config from "./config";
@@ -27,6 +28,7 @@ export interface OsmObjectProperties {
 
 export interface OsmObjectDiff {
   action: ADiffAction;
+  isGeometryChanged: boolean;
   old: Feature<Geometry, OsmObjectProperties> | null;
   new: Feature<Geometry, OsmObjectProperties> | null;
 }
@@ -85,46 +87,60 @@ const filterObjects = (
   xmlDom: Document,
   action: ADiffAction
 ): OsmObjectDiff[] => {
-  return Array.from(
-    xmlDom.querySelectorAll(`action[type=${action}]`).entries()
-  ).map(([_, e]) => {
-    const newElement = action === ADiffAction.Create ? e : e.lastElementChild;
-    const oldElement =
-      action === ADiffAction.Create ? null : e.firstElementChild;
-    const diff: OsmObjectDiff = {
-      action,
-      old: null,
-      new: null,
-    };
-    if (oldElement && oldElement.firstElementChild) {
-      diff.old = _osmtogeojson(oldElement).features[0];
-    }
-    if (newElement && newElement.firstElementChild) {
-      diff.new = _osmtogeojson(newElement).features[0];
-    }
-    if (diff.old === null && diff.new === null) {
-      console.warn(
-        `${action} element missing old or new object!`,
-        oldElement,
-        newElement
-      );
-    }
-    return diff;
-  });
+  return Array.from(xmlDom.querySelectorAll(`action[type=${action}]`).entries())
+    .map(([_, e]) => {
+      const newElement = action === ADiffAction.Create ? e : e.lastElementChild;
+      const oldElement =
+        action === ADiffAction.Create ? null : e.firstElementChild;
+
+      const diff: OsmObjectDiff = {
+        action,
+        isGeometryChanged: true,
+        old: null,
+        new: null,
+      };
+      if (oldElement && oldElement.firstElementChild) {
+        diff.old = _osmtogeojson(oldElement).features[0];
+      }
+      if (newElement && newElement.firstElementChild) {
+        diff.new = _osmtogeojson(newElement).features[0];
+      }
+      if (diff.old && diff.new) {
+        diff.isGeometryChanged = isEqual(diff.old.geometry, diff.new.geometry);
+      }
+      if (diff.old === null && diff.new === null) {
+        diff.isGeometryChanged = false;
+        console.warn(
+          `${action} element missing old or new object!`,
+          oldElement,
+          newElement
+        );
+      }
+      return diff;
+    })
+    .filter((diff) => diff.new || diff.old);
 };
 
 export const getAugmentedDiff = (
   sequenceId: string
 ): Promise<AugmentedDiff> => {
+  const startFetchTime = new Date().getTime();
   const fetchMethod =
     process.env.NODE_ENV === "production" ? fetchAdiffString : fetchAdiffStub;
   return fetchMethod(sequenceId).then((bodyText) => {
+    const startParseTime = new Date().getTime();
+    console.log(
+      `getAugmentedDiff HTTP request: ${startParseTime - startFetchTime}ms`
+    );
     console.log(bodyText.slice(0, 128));
     const parser = new DOMParser();
     const xmlDom = parser.parseFromString(bodyText, "application/xml");
     const created = filterObjects(xmlDom, ADiffAction.Create);
     const deleted = filterObjects(xmlDom, ADiffAction.Delete);
     const modified = filterObjects(xmlDom, ADiffAction.Modify);
+    console.log(
+      `getAugmentedDiff parse: ${new Date().getTime() - startParseTime}ms`
+    );
     return {
       created,
       modified,

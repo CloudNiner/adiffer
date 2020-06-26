@@ -13,6 +13,7 @@ type MapProps = {
   deleted: FeatureCollection<Geometry, OsmObjectProperties>;
   modifiedNew: FeatureCollection<Geometry, OsmObjectProperties>;
   modifiedOld: FeatureCollection<Geometry, OsmObjectProperties>;
+  modifiedTags: FeatureCollection<Geometry, OsmObjectProperties>;
 };
 
 const Map = ReactMapboxGl({ accessToken: "" });
@@ -29,7 +30,7 @@ const circlePaint = (overrides: CirclePaint) => {
 };
 
 const fillPaint = (overrides: FillPaint) => {
-  const defaults: FillPaint = { "fill-color": "#FFFFFF", "fill-opacity": 0.2 };
+  const defaults: FillPaint = { "fill-color": "#FFFFFF", "fill-opacity": 0.4 };
   return Object.assign({}, defaults, overrides);
 };
 
@@ -81,6 +82,21 @@ const modifiedNewLayerCirclePaint = circlePaint({
   "circle-stroke-color": modifiedNewColor,
 });
 
+const modifiedTagsColor = "#608ba5";
+
+const modifiedTagsLayerFillPaint = fillPaint({
+  "fill-color": modifiedTagsColor,
+});
+
+const modifiedTagsLayerLinePaint = linePaint({
+  "line-color": modifiedTagsColor,
+});
+
+const modifiedTagsLayerCirclePaint = circlePaint({
+  "circle-color": modifiedTagsColor,
+  "circle-stroke-color": modifiedTagsColor,
+});
+
 const filterIsLine = [
   "match",
   ["geometry-type"],
@@ -105,6 +121,7 @@ const AugmentedDiffMap: React.FC<MapProps> = ({
   deleted,
   modifiedNew,
   modifiedOld,
+  modifiedTags,
 }) => {
   const [center] = useState<[number, number]>([0, 0]);
   const [zoom] = useState<[number]>([2]);
@@ -125,7 +142,12 @@ const AugmentedDiffMap: React.FC<MapProps> = ({
 
   const modifiedOldSource = {
     type: "geojson",
-    data: modifiedNew,
+    data: modifiedOld,
+  };
+
+  const modifiedTagsSource = {
+    type: "geojson",
+    data: modifiedTags,
   };
 
   if (!config.maptilerApiKey) {
@@ -221,6 +243,28 @@ const AugmentedDiffMap: React.FC<MapProps> = ({
         sourceId="modifiedNewObjects"
         type="circle"
         paint={modifiedNewLayerCirclePaint}
+        filter={filterIsPoint}
+      />
+      <Source id="modifiedTagsObjects" geoJsonSource={modifiedTagsSource} />
+      <Layer
+        id="modifiedTagsObjectsFill"
+        sourceId="modifiedTagsObjects"
+        type="fill"
+        paint={modifiedTagsLayerFillPaint}
+        filter={filterIsPolygon}
+      />
+      <Layer
+        id="modifiedTagsObjectsLine"
+        sourceId="modifiedTagsObjects"
+        type="line"
+        paint={modifiedTagsLayerLinePaint}
+        filter={filterIsLine}
+      />
+      <Layer
+        id="modifiedTagsObjectsCircle"
+        sourceId="modifiedTagsObjects"
+        type="circle"
+        paint={modifiedTagsLayerCirclePaint}
         filter={filterIsPoint}
       />
     </Map>

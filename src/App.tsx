@@ -73,7 +73,7 @@ function App() {
     OsmObjectProperties
   >[] = selectedActions.create
     ? augmentedDiff.created
-        .map((f) => f.new)
+        .map((diff) => diff.new)
         .filter((f): f is Feature<Geometry, OsmObjectProperties> => f !== null)
         .filter((f) => selectedObjects[f.properties.type])
     : [];
@@ -83,7 +83,7 @@ function App() {
     OsmObjectProperties
   >[] = selectedActions.delete
     ? augmentedDiff.deleted
-        .map((f) => f.old)
+        .map((diff) => diff.old)
         .filter((f): f is Feature<Geometry, OsmObjectProperties> => f !== null)
         .filter((f) => selectedObjects[f.properties.type])
     : [];
@@ -93,7 +93,8 @@ function App() {
     OsmObjectProperties
   >[] = selectedActions.modify
     ? augmentedDiff.modified
-        .map((f) => f.old)
+        .filter((diff) => diff.isGeometryChanged)
+        .map((diff) => diff.old)
         .filter((f): f is Feature<Geometry, OsmObjectProperties> => f !== null)
         .filter((f) => selectedObjects[f.properties.type])
     : [];
@@ -103,7 +104,19 @@ function App() {
     OsmObjectProperties
   >[] = selectedActions.modify
     ? augmentedDiff.modified
-        .map((f) => f.new)
+        .filter((diff) => diff.isGeometryChanged)
+        .map((diff) => diff.new)
+        .filter((f): f is Feature<Geometry, OsmObjectProperties> => f !== null)
+        .filter((f) => selectedObjects[f.properties.type])
+    : [];
+
+  const tagsModifiedFeatures: Feature<
+    Geometry,
+    OsmObjectProperties
+  >[] = selectedActions.modify
+    ? augmentedDiff.modified
+        .filter((diff) => !diff.isGeometryChanged)
+        .map((diff) => diff.new)
         .filter((f): f is Feature<Geometry, OsmObjectProperties> => f !== null)
         .filter((f) => selectedObjects[f.properties.type])
     : [];
@@ -158,6 +171,10 @@ function App() {
         modifiedOld={{
           type: "FeatureCollection",
           features: oldModifiedFeatures,
+        }}
+        modifiedTags={{
+          type: "FeatureCollection",
+          features: tagsModifiedFeatures,
         }}
       />
     </Box>
