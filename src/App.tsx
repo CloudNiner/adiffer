@@ -88,19 +88,33 @@ function App() {
         .filter((f) => selectedObjects[f.properties.type])
     : [];
 
-  // const modifiedFeatures: Feature<
-  //   Geometry,
-  //   OsmObjectProperties
-  // >[] = selectedActions.modify
-  //   ? augmentedDiff.modified
-  //       .map((f) => f.new)
-  //       .filter((f): f is Feature<Geometry, OsmObjectProperties> => f !== null)
-  //       .filter((f) => selectedObjects[f.properties.type])
-  //   : [];
+  const oldModifiedFeatures: Feature<
+    Geometry,
+    OsmObjectProperties
+  >[] = selectedActions.modify
+    ? augmentedDiff.modified
+        .map((f) => f.old)
+        .filter((f): f is Feature<Geometry, OsmObjectProperties> => f !== null)
+        .filter((f) => selectedObjects[f.properties.type])
+    : [];
+
+  const newModifiedFeatures: Feature<
+    Geometry,
+    OsmObjectProperties
+  >[] = selectedActions.modify
+    ? augmentedDiff.modified
+        .map((f) => f.new)
+        .filter((f): f is Feature<Geometry, OsmObjectProperties> => f !== null)
+        .filter((f) => selectedObjects[f.properties.type])
+    : [];
 
   // Why do we render twice?
-  console.log("created", createdFeatures);
-  console.log("deleted", deletedFeatures);
+  if (process.env.NODE_ENV === "development") {
+    console.log("created", createdFeatures);
+    console.log("deleted", deletedFeatures);
+    console.log("new modified", newModifiedFeatures);
+    console.log("old modified", oldModifiedFeatures);
+  }
 
   const onSequenceChange = (sequenceId: string) => {
     getAugmentedDiff(sequenceId).then((newADiff) => setAugmentedDiff(newADiff));
@@ -137,6 +151,14 @@ function App() {
         className={classes.mapBox}
         created={{ type: "FeatureCollection", features: createdFeatures }}
         deleted={{ type: "FeatureCollection", features: deletedFeatures }}
+        modifiedNew={{
+          type: "FeatureCollection",
+          features: newModifiedFeatures,
+        }}
+        modifiedOld={{
+          type: "FeatureCollection",
+          features: oldModifiedFeatures,
+        }}
       />
     </Box>
   );

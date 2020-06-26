@@ -11,6 +11,8 @@ type MapProps = {
   className?: string;
   created: FeatureCollection<Geometry, OsmObjectProperties>;
   deleted: FeatureCollection<Geometry, OsmObjectProperties>;
+  modifiedNew: FeatureCollection<Geometry, OsmObjectProperties>;
+  modifiedOld: FeatureCollection<Geometry, OsmObjectProperties>;
 };
 
 const Map = ReactMapboxGl({ accessToken: "" });
@@ -35,7 +37,7 @@ const linePaint = (overrides: LinePaint) => {
   const defaults: LinePaint = { "line-color": "#FFFFFF", "line-width": 2 };
   return Object.assign({}, defaults, overrides);
 };
-const createdColor = "#00FF00";
+const createdColor = "#faf797";
 
 const createdLayerFillPaint = fillPaint({ "fill-color": createdColor });
 
@@ -46,7 +48,7 @@ const createdLayerCirclePaint = circlePaint({
   "circle-stroke-color": createdColor,
 });
 
-const deletedColor = "#FF0000";
+const deletedColor = "#ff3333";
 
 const deletedLayerFillPaint = fillPaint({ "fill-color": deletedColor });
 
@@ -55,6 +57,28 @@ const deletedLayerLinePaint = linePaint({ "line-color": deletedColor });
 const deletedLayerCirclePaint = circlePaint({
   "circle-color": deletedColor,
   "circle-stroke-color": deletedColor,
+});
+
+const modifiedOldColor = "#8b0000";
+
+const modifiedOldLayerFillPaint = fillPaint({ "fill-color": modifiedOldColor });
+
+const modifiedOldLayerLinePaint = linePaint({ "line-color": modifiedOldColor });
+
+const modifiedOldLayerCirclePaint = circlePaint({
+  "circle-color": modifiedOldColor,
+  "circle-stroke-color": modifiedOldColor,
+});
+
+const modifiedNewColor = "#90ee90";
+
+const modifiedNewLayerFillPaint = fillPaint({ "fill-color": modifiedNewColor });
+
+const modifiedNewLayerLinePaint = linePaint({ "line-color": modifiedNewColor });
+
+const modifiedNewLayerCirclePaint = circlePaint({
+  "circle-color": modifiedNewColor,
+  "circle-stroke-color": modifiedNewColor,
 });
 
 const filterIsLine = [
@@ -79,6 +103,8 @@ const AugmentedDiffMap: React.FC<MapProps> = ({
   className,
   created,
   deleted,
+  modifiedNew,
+  modifiedOld,
 }) => {
   const [center] = useState<[number, number]>([0, 0]);
   const [zoom] = useState<[number]>([2]);
@@ -92,6 +118,16 @@ const AugmentedDiffMap: React.FC<MapProps> = ({
     data: deleted,
   };
 
+  const modifiedNewSource = {
+    type: "geojson",
+    data: modifiedNew,
+  };
+
+  const modifiedOldSource = {
+    type: "geojson",
+    data: modifiedNew,
+  };
+
   if (!config.maptilerApiKey) {
     throw new Error("REACT_APP_MAPTILER_API_KEY required!");
   }
@@ -99,7 +135,7 @@ const AugmentedDiffMap: React.FC<MapProps> = ({
 
   return (
     <Map center={center} className={className} style={styleUrl} zoom={zoom}>
-      <Source id="deletedObjects" geoJsonSource={deletedSource}></Source>
+      <Source id="deletedObjects" geoJsonSource={deletedSource} />
       <Layer
         id="deletedObjectsFill"
         sourceId="deletedObjects"
@@ -121,7 +157,7 @@ const AugmentedDiffMap: React.FC<MapProps> = ({
         paint={deletedLayerCirclePaint}
         filter={filterIsPoint}
       />
-      <Source id="createdObjects" geoJsonSource={createdSource}></Source>
+      <Source id="createdObjects" geoJsonSource={createdSource} />
       <Layer
         id="createdObjectsFill"
         sourceId="createdObjects"
@@ -141,6 +177,50 @@ const AugmentedDiffMap: React.FC<MapProps> = ({
         sourceId="createdObjects"
         type="circle"
         paint={createdLayerCirclePaint}
+        filter={filterIsPoint}
+      />
+      <Source id="modifiedOldObjects" geoJsonSource={modifiedOldSource} />
+      <Layer
+        id="modifiedOldObjectsFill"
+        sourceId="modifiedOldObjects"
+        type="fill"
+        paint={modifiedOldLayerFillPaint}
+        filter={filterIsPolygon}
+      />
+      <Layer
+        id="modifiedOldObjectsLine"
+        sourceId="modifiedOldObjects"
+        type="line"
+        paint={modifiedOldLayerLinePaint}
+        filter={filterIsLine}
+      />
+      <Layer
+        id="modifiedOldObjectsCircle"
+        sourceId="modifiedOldObjects"
+        type="circle"
+        paint={modifiedOldLayerCirclePaint}
+        filter={filterIsPoint}
+      />
+      <Source id="modifiedNewObjects" geoJsonSource={modifiedNewSource} />
+      <Layer
+        id="modifiedNewObjectsFill"
+        sourceId="modifiedNewObjects"
+        type="fill"
+        paint={modifiedNewLayerFillPaint}
+        filter={filterIsPolygon}
+      />
+      <Layer
+        id="modifiedNewObjectsLine"
+        sourceId="modifiedNewObjects"
+        type="line"
+        paint={modifiedNewLayerLinePaint}
+        filter={filterIsLine}
+      />
+      <Layer
+        id="modifiedNewObjectsCircle"
+        sourceId="modifiedNewObjects"
+        type="circle"
+        paint={modifiedNewLayerCirclePaint}
         filter={filterIsPoint}
       />
     </Map>
