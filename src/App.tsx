@@ -1,8 +1,9 @@
 import React, { useState } from "react";
 
 import { Feature, Geometry } from "geojson";
-import { Box, Button, Divider } from "@material-ui/core";
+import { Box, Button, ButtonGroup, Divider } from "@material-ui/core";
 import { makeStyles } from "@material-ui/core/styles";
+import { DropzoneArea } from "material-ui-dropzone";
 
 import {
   getAugmentedDiff,
@@ -91,6 +92,10 @@ function App() {
     augmentedDiff.modified.length
   );
 
+  const [inputMethod, setInputMethod] = useState<"overpass" | "file">(
+    "overpass"
+  );
+
   const createdFeatures: Feature<
     Geometry,
     OsmObjectProperties
@@ -170,17 +175,49 @@ function App() {
     <Box className={classes.windowBox}>
       <Box mx={2} className={classes.sidebarBox}>
         <Header />
-        <SequenceSelector onChange={setSequenceId} />
-        <Button
-          className={classes.goButton}
-          color="primary"
-          disabled={!isSequenceValid(sequenceId) || isLoading}
-          disableElevation
-          onClick={goButtonClicked}
-          variant="contained"
-        >
-          {isLoading ? "Loading..." : "Go"}
-        </Button>
+        <Box mb={2} display="flex" justifyContent="center">
+          <ButtonGroup
+            color="primary"
+            aria-label="outlined primary button group"
+          >
+            <Button
+              variant={inputMethod === "overpass" ? "contained" : "outlined"}
+              onClick={() => setInputMethod("overpass")}
+            >
+              Overpass
+            </Button>
+            <Button
+              variant={inputMethod === "file" ? "contained" : "outlined"}
+              onClick={() => setInputMethod("file")}
+            >
+              Upload
+            </Button>
+          </ButtonGroup>
+        </Box>
+        {inputMethod === "overpass" && (
+          <>
+            <SequenceSelector onChange={setSequenceId} />
+            <Button
+              className={classes.goButton}
+              color="primary"
+              disabled={!isSequenceValid(sequenceId) || isLoading}
+              disableElevation
+              onClick={goButtonClicked}
+              variant="contained"
+            >
+              {isLoading ? "Loading..." : "Go"}
+            </Button>
+          </>
+        )}
+        {inputMethod === "file" && (
+          <DropzoneArea
+            acceptedFiles={[".xml", "text/xml", "text/plain"]}
+            filesLimit={1}
+            maxFileSize={25 * 1024 * 1024}
+            onChange={(files) => console.log(files)}
+            showFileNames={true}
+          />
+        )}
         {isAugmentedDiffValid && (
           <>
             <Divider className={classes.divider} />

@@ -17,7 +17,11 @@ type MapProps = {
   modifiedTags: FeatureCollection<Geometry, OsmObjectProperties>;
 };
 
-const Map = ReactMapboxGl({ accessToken: "" });
+if (!config.mapboxApiKey) {
+  throw new Error("REACT_APP_MAPBOX_API_KEY required!");
+}
+
+const Map = ReactMapboxGl({ accessToken: config.mapboxApiKey });
 
 const circlePaint = (overrides: CirclePaint) => {
   const defaults: CirclePaint = {
@@ -151,13 +155,10 @@ const AugmentedDiffMap: React.FC<MapProps> = ({
     data: modifiedTags,
   };
 
-  if (!config.maptilerApiKey) {
-    throw new Error("REACT_APP_MAPTILER_API_KEY required!");
-  }
-  const styleUrl = `https://api.maptiler.com/maps/streets/style.json?key=${config.maptilerApiKey}`;
+  const styleUrl = `mapbox://styles/afinkmiller/ckfocvsq902ks19p61zj04g17`;
 
   return (
-    <Map center={center} className={className} style={styleUrl} zoom={zoom}>
+    <Map  center={center} className={className} style={styleUrl} zoom={zoom}>
       <Source id="deletedObjects" geoJsonSource={deletedSource} />
       <Layer
         id="deletedObjectsFill"
