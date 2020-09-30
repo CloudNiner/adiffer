@@ -4,7 +4,12 @@ import { Box, Button, ButtonGroup, Divider } from "@material-ui/core";
 import { makeStyles } from "@material-ui/core/styles";
 import { DropzoneArea } from "material-ui-dropzone";
 
-import { getAugmentedDiff, isSequenceValid, AugmentedDiff } from "./osm";
+import {
+  getAugmentedDiff,
+  isSequenceValid,
+  parseDiff,
+  AugmentedDiff,
+} from "./osm";
 import ADifferLegend from "./Components/ADifferLegend";
 import ActionSelector, {
   ActionSelectorState,
@@ -101,6 +106,22 @@ function App() {
   const onActionChanged = (state: ActionSelectorState) =>
     setSelectedActions(state);
 
+  const onDropzoneFilesChange = (files: File[]) => {
+    if (files.length) {
+      const reader = new FileReader();
+      reader.onload = (event: ProgressEvent<FileReader>) => {
+        if (event?.target?.result && typeof event.target.result === "string") {
+          setAugmentedDiff(parseDiff(event.target.result as string));
+        } else {
+          console.error("Unable to read uploaded file as xml string!", event);
+        }
+      };
+      reader.readAsText(files[0], "UTF-8");
+    } else {
+      setAugmentedDiff({ created: [], deleted: [], modified: [] });
+    }
+  };
+
   const onOsmObjectChanged = (state: OsmObjectSelectorState) =>
     setSelectedObjects(state);
 
@@ -147,7 +168,7 @@ function App() {
             acceptedFiles={[".xml", "text/xml", "text/plain"]}
             filesLimit={1}
             maxFileSize={25 * 1024 * 1024}
-            onChange={(files) => console.log(files)}
+            onChange={onDropzoneFilesChange}
             showFileNames={true}
           />
         )}
