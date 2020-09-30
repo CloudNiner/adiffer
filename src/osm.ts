@@ -121,6 +121,23 @@ const filterObjects = (
     .filter((diff) => diff.new || diff.old);
 };
 
+export const parseDiff = (xmlString: string): AugmentedDiff => {
+  const startParseTime = new Date().getTime();
+  const parser = new DOMParser();
+  const xmlDom = parser.parseFromString(xmlString, "application/xml");
+  const created = filterObjects(xmlDom, ADiffAction.Create);
+  const deleted = filterObjects(xmlDom, ADiffAction.Delete);
+  const modified = filterObjects(xmlDom, ADiffAction.Modify);
+  console.log(
+    `getAugmentedDiff parse: ${new Date().getTime() - startParseTime}ms`
+  );
+  return {
+    created,
+    modified,
+    deleted,
+  };
+};
+
 export const getAugmentedDiff = (
   sequenceId: string
 ): Promise<AugmentedDiff> => {
@@ -128,23 +145,11 @@ export const getAugmentedDiff = (
   const fetchMethod =
     process.env.NODE_ENV === "production" ? fetchAdiffString : fetchAdiffStub;
   return fetchMethod(sequenceId).then((bodyText) => {
-    const startParseTime = new Date().getTime();
     console.log(
-      `getAugmentedDiff HTTP request: ${startParseTime - startFetchTime}ms`
+      `getAugmentedDiff HTTP request: ${
+        new Date().getTime() - startFetchTime
+      }ms`
     );
-    console.log(bodyText.slice(0, 128));
-    const parser = new DOMParser();
-    const xmlDom = parser.parseFromString(bodyText, "application/xml");
-    const created = filterObjects(xmlDom, ADiffAction.Create);
-    const deleted = filterObjects(xmlDom, ADiffAction.Delete);
-    const modified = filterObjects(xmlDom, ADiffAction.Modify);
-    console.log(
-      `getAugmentedDiff parse: ${new Date().getTime() - startParseTime}ms`
-    );
-    return {
-      created,
-      modified,
-      deleted,
-    };
+    return parseDiff(bodyText);
   });
 };
