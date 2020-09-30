@@ -118,7 +118,7 @@ const AugmentedDiffMap: React.FC<MapProps> = ({
     data: { type: "FeatureCollection", features: modifiedTags },
   };
 
-  const styleUrl = `mapbox://styles/afinkmiller/ckfocvsq902ks19p61zj04g17`;
+  const styleUrl = `mapbox://styles/mapbox/dark-v10??optimize=true`;
 
   return (
     <Map center={center} className={className} style={styleUrl} zoom={zoom}>
