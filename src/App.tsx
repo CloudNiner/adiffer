@@ -1,23 +1,17 @@
 import React, { useState } from "react";
 
-import { Feature, Geometry } from "geojson";
 import { Box, Button, ButtonGroup, Divider } from "@material-ui/core";
 import { makeStyles } from "@material-ui/core/styles";
 import { DropzoneArea } from "material-ui-dropzone";
 
-import {
-  getAugmentedDiff,
-  isSequenceValid,
-  OsmObjectProperties,
-  AugmentedDiff,
-} from "./osm";
+import { getAugmentedDiff, isSequenceValid, AugmentedDiff } from "./osm";
 import ADifferLegend from "./Components/ADifferLegend";
 import ActionSelector, {
   ActionSelectorState,
 } from "./Components/ActionSelector";
 import Header from "./Components/Header";
 import SequenceSelector from "./Components/SequenceSelector";
-import Map from "./Sections/Map";
+import AugmentedDiffMap from "./Sections/AugmentedDiffMap";
 import OsmObjectSelector, {
   OsmObjectSelectorState,
 } from "./Components/OsmObjectSelector";
@@ -96,67 +90,6 @@ function App() {
     "overpass"
   );
 
-  const createdFeatures: Feature<
-    Geometry,
-    OsmObjectProperties
-  >[] = selectedActions.create
-    ? augmentedDiff.created
-        .map((diff) => diff.new)
-        .filter((f): f is Feature<Geometry, OsmObjectProperties> => f !== null)
-        .filter((f) => selectedObjects[f.properties.type])
-    : [];
-
-  const deletedFeatures: Feature<
-    Geometry,
-    OsmObjectProperties
-  >[] = selectedActions.delete
-    ? augmentedDiff.deleted
-        .map((diff) => diff.old)
-        .filter((f): f is Feature<Geometry, OsmObjectProperties> => f !== null)
-        .filter((f) => selectedObjects[f.properties.type])
-    : [];
-
-  const oldModifiedFeatures: Feature<
-    Geometry,
-    OsmObjectProperties
-  >[] = selectedActions.modify
-    ? augmentedDiff.modified
-        .filter((diff) => diff.isGeometryChanged)
-        .map((diff) => diff.old)
-        .filter((f): f is Feature<Geometry, OsmObjectProperties> => f !== null)
-        .filter((f) => selectedObjects[f.properties.type])
-    : [];
-
-  const newModifiedFeatures: Feature<
-    Geometry,
-    OsmObjectProperties
-  >[] = selectedActions.modify
-    ? augmentedDiff.modified
-        .filter((diff) => diff.isGeometryChanged)
-        .map((diff) => diff.new)
-        .filter((f): f is Feature<Geometry, OsmObjectProperties> => f !== null)
-        .filter((f) => selectedObjects[f.properties.type])
-    : [];
-
-  const tagsModifiedFeatures: Feature<
-    Geometry,
-    OsmObjectProperties
-  >[] = selectedActions.modify
-    ? augmentedDiff.modified
-        .filter((diff) => !diff.isGeometryChanged)
-        .map((diff) => diff.new)
-        .filter((f): f is Feature<Geometry, OsmObjectProperties> => f !== null)
-        .filter((f) => selectedObjects[f.properties.type])
-    : [];
-
-  // Why do we render twice?
-  if (process.env.NODE_ENV === "development") {
-    console.log("created", createdFeatures);
-    console.log("deleted", deletedFeatures);
-    console.log("new modified", newModifiedFeatures);
-    console.log("old modified", oldModifiedFeatures);
-  }
-
   const goButtonClicked = () => {
     setIsLoading(true);
     setAugmentedDiff({ created: [], modified: [], deleted: [] });
@@ -232,22 +165,15 @@ function App() {
           </>
         )}
       </Box>
-      <Map
+      <AugmentedDiffMap
+        augmentedDiff={augmentedDiff}
         className={classes.mapBox}
-        created={{ type: "FeatureCollection", features: createdFeatures }}
-        deleted={{ type: "FeatureCollection", features: deletedFeatures }}
-        modifiedNew={{
-          type: "FeatureCollection",
-          features: newModifiedFeatures,
-        }}
-        modifiedOld={{
-          type: "FeatureCollection",
-          features: oldModifiedFeatures,
-        }}
-        modifiedTags={{
-          type: "FeatureCollection",
-          features: tagsModifiedFeatures,
-        }}
+        showActionCreate={selectedActions.create}
+        showActionDelete={selectedActions.delete}
+        showActionModify={selectedActions.modify}
+        showNodes={selectedObjects.node}
+        showRelations={selectedObjects.relation}
+        showWays={selectedObjects.way}
       />
       <Box className={classes.legendBox}>
         <ADifferLegend />
