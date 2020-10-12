@@ -101,9 +101,15 @@ const filterObjects = (
       };
       if (oldElement && oldElement.firstElementChild) {
         diff.old = _osmtogeojson(oldElement).features[0];
+        if (diff.old) {
+          diff.old.id = `${diff.old.properties.type}/${diff.old.properties.id}`
+        }
       }
       if (newElement && newElement.firstElementChild) {
         diff.new = _osmtogeojson(newElement).features[0];
+        if (diff.new) {
+          diff.new.id = `${diff.new.properties.type}/${diff.new.properties.id}`
+        }
       }
       if (diff.old && diff.new) {
         diff.isGeometryChanged = isEqual(diff.old.geometry, diff.new.geometry);
