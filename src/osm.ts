@@ -18,19 +18,29 @@ export enum ADiffAction {
   Modify = "modify",
 }
 
+export interface OsmObjectMetadata {
+  uid: number;
+  user: string;
+  timestamp: string;  // ISO8601
+  version: number;
+  changeset: number;
+}
+
 export interface OsmObjectProperties {
   id: number;
-  meta: { string: string };
+  meta: OsmObjectMetadata;
   relations: any[];
   tags: { string: string };
   type: "node" | "way" | "relation";
 }
 
+export type OSMFeature = Feature<Geometry, OsmObjectProperties>;
+
 export interface OsmObjectDiff {
   action: ADiffAction;
   isGeometryChanged: boolean;
-  old: Feature<Geometry, OsmObjectProperties> | null;
-  new: Feature<Geometry, OsmObjectProperties> | null;
+  old: OSMFeature | null;
+  new: OSMFeature | null;
 }
 
 export interface AugmentedDiff extends Object {

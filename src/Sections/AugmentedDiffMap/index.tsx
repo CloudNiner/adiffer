@@ -1,10 +1,9 @@
 import React from "react";
 
-import { Feature, Geometry } from "geojson";
-import mapboxgl, { GeoJSONSource, MapLayerMouseEvent } from "mapbox-gl";
+import mapboxgl, { GeoJSONSource, MapboxGeoJSONFeature, MapLayerMouseEvent } from "mapbox-gl";
 
 import config from "../../config";
-import { AugmentedDiff, OsmObjectProperties } from "../../osm";
+import { ADiffAction, AugmentedDiff, OSMFeature, OsmObjectDiff } from "../../osm";
 import * as filters from "./filters";
 import * as styles from "./styles";
 
@@ -17,6 +16,7 @@ export type MapProps = {
   showNodes: boolean;
   showRelations: boolean;
   showWays: boolean;
+  onFeatureClick: (diff: OsmObjectDiff) => void;
 };
 
 if (!config.mapboxApiKey) {
@@ -83,6 +83,7 @@ class AugmentedDiffMap extends React.Component<MapProps> {
       map.on("mouseenter", "deletedObjectsFill", this.onMouseEnter);
       map.on("mouseleave", "deletedObjectsFill", this.onMouseLeave);
       map.on("mousemove", "deletedObjectsFill", this.onMouseMove);
+      map.on("click", "deletedObjectsFill", this.onMouseClick);
 
       map.addLayer({
         id: "modifiedOldObjectsFill",
@@ -94,6 +95,7 @@ class AugmentedDiffMap extends React.Component<MapProps> {
       map.on("mouseenter", "modifiedOldObjectsFill", this.onMouseEnter);
       map.on("mouseleave", "modifiedOldObjectsFill", this.onMouseLeave);
       map.on("mousemove", "modifiedOldObjectsFill", this.onMouseMove);
+      map.on("click", "modifiedOldObjectsFill", this.onMouseClick);
 
       map.addLayer({
         id: "modifiedNewObjectsFill",
@@ -105,6 +107,7 @@ class AugmentedDiffMap extends React.Component<MapProps> {
       map.on("mouseenter", "modifiedNewObjectsFill", this.onMouseEnter);
       map.on("mouseleave", "modifiedNewObjectsFill", this.onMouseLeave);
       map.on("mousemove", "modifiedNewObjectsFill", this.onMouseMove);
+      map.on("click", "modifiedNewObjectsFill", this.onMouseClick);
 
       map.addLayer({
         id: "modifiedTagsObjectsFill",
@@ -116,6 +119,7 @@ class AugmentedDiffMap extends React.Component<MapProps> {
       map.on("mouseenter", "modifiedTagsObjectsFill", this.onMouseEnter);
       map.on("mouseleave", "modifiedTagsObjectsFill", this.onMouseLeave);
       map.on("mousemove", "modifiedTagsObjectsFill", this.onMouseMove);
+      map.on("click", "modifiedTagsObjectsFill", this.onMouseClick);
 
       map.addLayer({
         id: "createdObjectsFill",
@@ -127,6 +131,7 @@ class AugmentedDiffMap extends React.Component<MapProps> {
       map.on("mouseenter", "createdObjectsFill", this.onMouseEnter);
       map.on("mouseleave", "createdObjectsFill", this.onMouseLeave);
       map.on("mousemove", "createdObjectsFill", this.onMouseMove);
+      map.on("click", "createdObjectsFill", this.onMouseClick);
 
       map.addLayer({
         id: "deletedObjectsLine",
@@ -138,6 +143,7 @@ class AugmentedDiffMap extends React.Component<MapProps> {
       map.on("mouseenter", "deletedObjectsLine", this.onMouseEnter);
       map.on("mouseleave", "deletedObjectsLine", this.onMouseLeave);
       map.on("mousemove", "deletedObjectsLine", this.onMouseMove);
+      map.on("click", "deletedObjectsLine", this.onMouseClick);
 
       map.addLayer({
         id: "modifiedOldObjectsLine",
@@ -149,6 +155,7 @@ class AugmentedDiffMap extends React.Component<MapProps> {
       map.on("mouseenter", "modifiedOldObjectsLine", this.onMouseEnter);
       map.on("mouseleave", "modifiedOldObjectsLine", this.onMouseLeave);
       map.on("mousemove", "modifiedOldObjectsLine", this.onMouseMove);
+      map.on("click", "modifiedOldObjectsLine", this.onMouseClick);
 
       map.addLayer({
         id: "modifiedNewObjectsLine",
@@ -160,6 +167,7 @@ class AugmentedDiffMap extends React.Component<MapProps> {
       map.on("mouseenter", "modifiedNewObjectsLine", this.onMouseEnter);
       map.on("mouseleave", "modifiedNewObjectsLine", this.onMouseLeave);
       map.on("mousemove", "modifiedNewObjectsLine", this.onMouseMove);
+      map.on("click", "modifiedNewObjectsLine", this.onMouseClick);
 
       map.addLayer({
         id: "modifiedTagsObjectsLine",
@@ -171,6 +179,7 @@ class AugmentedDiffMap extends React.Component<MapProps> {
       map.on("mouseenter", "modifiedTagsObjectsLine", this.onMouseEnter);
       map.on("mouseleave", "modifiedTagsObjectsLine", this.onMouseLeave);
       map.on("mousemove", "modifiedTagsObjectsLine", this.onMouseMove);
+      map.on("click", "modifiedTagsObjectsLine", this.onMouseClick);
 
       map.addLayer({
         id: "createdObjectsLine",
@@ -182,6 +191,7 @@ class AugmentedDiffMap extends React.Component<MapProps> {
       map.on("mouseenter", "createdObjectsLine", this.onMouseEnter);
       map.on("mouseleave", "createdObjectsLine", this.onMouseLeave);
       map.on("mousemove", "createdObjectsLine", this.onMouseMove);
+      map.on("click", "createdObjectsLine", this.onMouseClick);
 
       map.addLayer({
         id: "deletedObjectsCircle",
@@ -193,6 +203,7 @@ class AugmentedDiffMap extends React.Component<MapProps> {
       map.on("mouseenter", "deletedObjectsCircle", this.onMouseEnter);
       map.on("mouseleave", "deletedObjectsCircle", this.onMouseLeave);
       map.on("mousemove", "deletedObjectsCircle", this.onMouseMove);
+      map.on("click", "deletedObjectsCircle", this.onMouseClick);
 
       map.addLayer({
         id: "modifiedOldObjectsCircle",
@@ -204,6 +215,7 @@ class AugmentedDiffMap extends React.Component<MapProps> {
       map.on("mouseenter", "modifiedOldObjectsCircle", this.onMouseEnter);
       map.on("mouseleave", "modifiedOldObjectsCircle", this.onMouseLeave);
       map.on("mousemove", "modifiedOldObjectsCircle", this.onMouseMove);
+      map.on("click", "modifiedOldObjectsCircle", this.onMouseClick);
 
       map.addLayer({
         id: "modifiedNewObjectsCircle",
@@ -215,6 +227,7 @@ class AugmentedDiffMap extends React.Component<MapProps> {
       map.on("mouseenter", "modifiedNewObjectsCircle", this.onMouseEnter);
       map.on("mouseleave", "modifiedNewObjectsCircle", this.onMouseLeave);
       map.on("mousemove", "modifiedNewObjectsCircle", this.onMouseMove);
+      map.on("click", "modifiedNewObjectsCircle", this.onMouseClick);
 
       map.addLayer({
         id: "modifiedTagsObjectsCircle",
@@ -226,6 +239,7 @@ class AugmentedDiffMap extends React.Component<MapProps> {
       map.on("mouseenter", "modifiedTagsObjectsCircle", this.onMouseEnter);
       map.on("mouseleave", "modifiedTagsObjectsCircle", this.onMouseLeave);
       map.on("mousemove", "modifiedTagsObjectsCircle", this.onMouseMove);
+      map.on("click", "modifiedTagsObjectsCircle", this.onMouseClick);
 
       map.addLayer({
         id: "createdObjectsCircle",
@@ -237,6 +251,7 @@ class AugmentedDiffMap extends React.Component<MapProps> {
       map.on("mouseenter", "createdObjectsCircle", this.onMouseEnter);
       map.on("mouseleave", "createdObjectsCircle", this.onMouseLeave);
       map.on("mousemove", "createdObjectsCircle", this.onMouseMove);
+      map.on("click", "createdObjectsCircle", this.onMouseClick);
     });
   }
 
@@ -269,10 +284,10 @@ class AugmentedDiffMap extends React.Component<MapProps> {
 
       const createdSource = this.map.getSource("createdObjects") as GeoJSONSource;
       if (createdSource) {
-        const created: Feature<Geometry, OsmObjectProperties>[] = showActionCreate
+        const created: OSMFeature[] = showActionCreate
           ? augmentedDiff.created
               .map((diff) => diff.new)
-              .filter((f): f is Feature<Geometry, OsmObjectProperties> => f !== null)
+              .filter((f): f is OSMFeature => f !== null)
               .filter((f) => selectedObjects[f.properties.type])
           : [];
         createdSource.setData({
@@ -283,10 +298,10 @@ class AugmentedDiffMap extends React.Component<MapProps> {
 
       const deletedSource = this.map.getSource("deletedObjects") as GeoJSONSource;
       if (deletedSource) {
-        const deleted: Feature<Geometry, OsmObjectProperties>[] = showActionDelete
+        const deleted: OSMFeature[] = showActionDelete
           ? augmentedDiff.deleted
               .map((diff) => diff.old)
-              .filter((f): f is Feature<Geometry, OsmObjectProperties> => f !== null)
+              .filter((f): f is OSMFeature => f !== null)
               .filter((f) => selectedObjects[f.properties.type])
           : [];
         deletedSource.setData({
@@ -297,11 +312,11 @@ class AugmentedDiffMap extends React.Component<MapProps> {
 
       const modifiedOldSource = this.map.getSource("modifiedOldObjects") as GeoJSONSource;
       if (modifiedOldSource) {
-        const modifiedOld: Feature<Geometry, OsmObjectProperties>[] = showActionModify
+        const modifiedOld: OSMFeature[] = showActionModify
           ? augmentedDiff.modified
               .filter((diff) => diff.isGeometryChanged)
               .map((diff) => diff.old)
-              .filter((f): f is Feature<Geometry, OsmObjectProperties> => f !== null)
+              .filter((f): f is OSMFeature => f !== null)
               .filter((f) => selectedObjects[f.properties.type])
           : [];
         modifiedOldSource.setData({
@@ -312,11 +327,11 @@ class AugmentedDiffMap extends React.Component<MapProps> {
 
       const modifiedNewSource = this.map.getSource("modifiedNewObjects") as GeoJSONSource;
       if (modifiedNewSource) {
-        const modifiedNew: Feature<Geometry, OsmObjectProperties>[] = showActionModify
+        const modifiedNew: OSMFeature[] = showActionModify
           ? augmentedDiff.modified
               .filter((diff) => diff.isGeometryChanged)
               .map((diff) => diff.new)
-              .filter((f): f is Feature<Geometry, OsmObjectProperties> => f !== null)
+              .filter((f): f is OSMFeature => f !== null)
               .filter((f) => selectedObjects[f.properties.type])
           : [];
         modifiedNewSource.setData({
@@ -327,11 +342,11 @@ class AugmentedDiffMap extends React.Component<MapProps> {
 
       const modifiedTagsSource = this.map.getSource("modifiedTagsObjects") as GeoJSONSource;
       if (modifiedTagsSource) {
-        const modifiedTags: Feature<Geometry, OsmObjectProperties>[] = showActionModify
+        const modifiedTags: OSMFeature[] = showActionModify
           ? augmentedDiff.modified
               .filter((diff) => !diff.isGeometryChanged)
               .map((diff) => diff.new)
-              .filter((f): f is Feature<Geometry, OsmObjectProperties> => f !== null)
+              .filter((f): f is OSMFeature => f !== null)
               .filter((f) => selectedObjects[f.properties.type])
           : [];
         modifiedTagsSource.setData({
@@ -378,6 +393,50 @@ class AugmentedDiffMap extends React.Component<MapProps> {
       }
     });
   };
+
+  private onMouseClick = (event: MapLayerMouseEvent) => {
+    if (event.features?.length === 1) {
+      const feature = event.features[0];
+      console.log(feature);
+
+      var action: ADiffAction;
+      if (feature.source.includes("created")) {
+        action = ADiffAction.Create;
+      } else if (feature.source.includes("modified")) {
+        action = ADiffAction.Modify;
+      } else if (feature.source.includes("deleted")) {
+        action = ADiffAction.Delete;
+      } else {
+        console.warn(`Couldn't determine ADiffAction from ${feature.layer}`);
+        return;
+      }
+
+      this.props.onFeatureClick({
+        action,
+        new: this.mapboxFeatureToOsmObject(feature),
+        old: null,
+        isGeometryChanged: true,
+      });
+    }
+  };
+
+  private mapboxFeatureToOsmObject(feature: MapboxGeoJSONFeature): OSMFeature {
+    const meta = JSON.parse(feature.properties?.meta || "{}");
+    const relations = JSON.parse(feature.properties?.relations || "[]");
+    const tags = JSON.parse(feature.properties?.tags || "{}");
+    return {
+      id: `${feature.properties?.type}/${feature.properties?.id}`,
+      geometry: feature.geometry,
+      properties: {
+        id: feature.properties?.id || -1,
+        meta,
+        relations,
+        type: feature.properties?.type || "",
+        tags,
+      },
+      type: "Feature",
+    };
+  }
 }
 
 export default AugmentedDiffMap;
