@@ -267,82 +267,78 @@ class AugmentedDiffMap extends React.Component<MapProps> {
         way: showWays,
       };
 
-      const created: Feature<Geometry, OsmObjectProperties>[] = showActionCreate
-        ? augmentedDiff.created
-            .map((diff) => diff.new)
-            .filter(
-              (f): f is Feature<Geometry, OsmObjectProperties> => f !== null
-            )
-            .filter((f) => selectedObjects[f.properties.type])
-        : [];
-      (this.map.getSource("createdObjects") as GeoJSONSource).setData({
-        type: "FeatureCollection",
-        features: created,
-      });
+      const createdSource = this.map.getSource("createdObjects") as GeoJSONSource;
+      if (createdSource) {
+        const created: Feature<Geometry, OsmObjectProperties>[] = showActionCreate
+          ? augmentedDiff.created
+              .map((diff) => diff.new)
+              .filter((f): f is Feature<Geometry, OsmObjectProperties> => f !== null)
+              .filter((f) => selectedObjects[f.properties.type])
+          : [];
+        createdSource.setData({
+          type: "FeatureCollection",
+          features: created,
+        });
+      }
 
-      const deleted: Feature<Geometry, OsmObjectProperties>[] = showActionDelete
-        ? augmentedDiff.deleted
-            .map((diff) => diff.old)
-            .filter(
-              (f): f is Feature<Geometry, OsmObjectProperties> => f !== null
-            )
-            .filter((f) => selectedObjects[f.properties.type])
-        : [];
-      (this.map.getSource("deletedObjects") as GeoJSONSource).setData({
-        type: "FeatureCollection",
-        features: deleted,
-      });
+      const deletedSource = this.map.getSource("deletedObjects") as GeoJSONSource;
+      if (deletedSource) {
+        const deleted: Feature<Geometry, OsmObjectProperties>[] = showActionDelete
+          ? augmentedDiff.deleted
+              .map((diff) => diff.old)
+              .filter((f): f is Feature<Geometry, OsmObjectProperties> => f !== null)
+              .filter((f) => selectedObjects[f.properties.type])
+          : [];
+        deletedSource.setData({
+          type: "FeatureCollection",
+          features: deleted,
+        });
+      }
 
-      const modifiedOld: Feature<
-        Geometry,
-        OsmObjectProperties
-      >[] = showActionModify
-        ? augmentedDiff.modified
-            .filter((diff) => diff.isGeometryChanged)
-            .map((diff) => diff.old)
-            .filter(
-              (f): f is Feature<Geometry, OsmObjectProperties> => f !== null
-            )
-            .filter((f) => selectedObjects[f.properties.type])
-        : [];
-      (this.map.getSource("modifiedOldObjects") as GeoJSONSource).setData({
-        type: "FeatureCollection",
-        features: modifiedOld,
-      });
+      const modifiedOldSource = this.map.getSource("modifiedOldObjects") as GeoJSONSource;
+      if (modifiedOldSource) {
+        const modifiedOld: Feature<Geometry, OsmObjectProperties>[] = showActionModify
+          ? augmentedDiff.modified
+              .filter((diff) => diff.isGeometryChanged)
+              .map((diff) => diff.old)
+              .filter((f): f is Feature<Geometry, OsmObjectProperties> => f !== null)
+              .filter((f) => selectedObjects[f.properties.type])
+          : [];
+        modifiedOldSource.setData({
+          type: "FeatureCollection",
+          features: modifiedOld,
+        });
+      }
 
-      const modifiedNew: Feature<
-        Geometry,
-        OsmObjectProperties
-      >[] = showActionModify
-        ? augmentedDiff.modified
-            .filter((diff) => diff.isGeometryChanged)
-            .map((diff) => diff.new)
-            .filter(
-              (f): f is Feature<Geometry, OsmObjectProperties> => f !== null
-            )
-            .filter((f) => selectedObjects[f.properties.type])
-        : [];
-      (this.map.getSource("modifiedNewObjects") as GeoJSONSource).setData({
-        type: "FeatureCollection",
-        features: modifiedNew,
-      });
+      const modifiedNewSource = this.map.getSource("modifiedNewObjects") as GeoJSONSource;
+      if (modifiedNewSource) {
+        const modifiedNew: Feature<Geometry, OsmObjectProperties>[] = showActionModify
+          ? augmentedDiff.modified
+              .filter((diff) => diff.isGeometryChanged)
+              .map((diff) => diff.new)
+              .filter((f): f is Feature<Geometry, OsmObjectProperties> => f !== null)
+              .filter((f) => selectedObjects[f.properties.type])
+          : [];
+        modifiedNewSource.setData({
+          type: "FeatureCollection",
+          features: modifiedNew,
+        });
+      }
 
-      const modifiedTags: Feature<
-        Geometry,
-        OsmObjectProperties
-      >[] = showActionModify
-        ? augmentedDiff.modified
-            .filter((diff) => !diff.isGeometryChanged)
-            .map((diff) => diff.new)
-            .filter(
-              (f): f is Feature<Geometry, OsmObjectProperties> => f !== null
-            )
-            .filter((f) => selectedObjects[f.properties.type])
-        : [];
-      (this.map.getSource("modifiedTagsObjects") as GeoJSONSource).setData({
-        type: "FeatureCollection",
-        features: modifiedTags,
-      });
+      const modifiedTagsSource = this.map.getSource("modifiedTagsObjects") as GeoJSONSource;
+      if (modifiedTagsSource) {
+        const modifiedTags: Feature<Geometry, OsmObjectProperties>[] = showActionModify
+          ? augmentedDiff.modified
+              .filter((diff) => !diff.isGeometryChanged)
+              .map((diff) => diff.new)
+              .filter((f): f is Feature<Geometry, OsmObjectProperties> => f !== null)
+              .filter((f) => selectedObjects[f.properties.type])
+          : [];
+        modifiedTagsSource.setData({
+          type: "FeatureCollection",
+          features: modifiedTags,
+        });
+      }
     }
   }
 
