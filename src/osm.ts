@@ -72,6 +72,16 @@ export const isSequenceValid = (sequence: string): boolean => {
   );
 };
 
+export const featuresFrom = (
+    augmentedDiff: AugmentedDiff,
+    action: "created" | "modified" | "deleted",
+    version: "new" | "old"
+  ): OSMFeature[] => {
+    return augmentedDiff[action]
+      .map((diff) => diff[version])
+      .filter((f): f is OSMFeature => f !== null);
+  };
+
 const fetchAdiffString = (sequenceId: string): Promise<string> => {
   return fetch(
     `${config.overpassUri}/api/augmented_diff?id=${sequenceId}`

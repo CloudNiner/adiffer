@@ -3,7 +3,7 @@ import React from "react";
 import mapboxgl, { GeoJSONSource, MapboxGeoJSONFeature, MapLayerMouseEvent } from "mapbox-gl";
 
 import config from "../../config";
-import { ADiffAction, AugmentedDiff, OSMFeature, OsmObjectDiff } from "../../osm";
+import { ADiffAction, AugmentedDiff, OSMFeature, OsmObjectDiff, featuresFrom } from "../../osm";
 import * as filters from "./filters";
 import * as styles from "./styles";
 
@@ -285,10 +285,9 @@ class AugmentedDiffMap extends React.Component<MapProps> {
       const createdSource = this.map.getSource("createdObjects") as GeoJSONSource;
       if (createdSource) {
         const created: OSMFeature[] = showActionCreate
-          ? augmentedDiff.created
-              .map((diff) => diff.new)
-              .filter((f): f is OSMFeature => f !== null)
-              .filter((f) => selectedObjects[f.properties.type])
+          ? featuresFrom(augmentedDiff, "created", "new").filter(
+              (f) => selectedObjects[f.properties.type]
+            )
           : [];
         createdSource.setData({
           type: "FeatureCollection",
@@ -411,16 +410,64 @@ class AugmentedDiffMap extends React.Component<MapProps> {
         return;
       }
 
+      const clickedFeature = this.mapboxFeatureToOsmObject(feature);
+      var newFeature: OSMFeature | null = null;
+      var oldFeature: OSMFeature | null = null;
+      var isGeometryChanged = true;
+      if (feature.source === "deletedObjects") {
+        oldFeature = clickedFeature;
+      } else if (feature.source === "createdObjects") {
+        newFeature = clickedFeature;
+      } else if (feature.source === "modifiedOldObjects") {
+        newFeature =
+          featuresFrom(this.props.augmentedDiff, "modified", "new").find(
+            (f) =>
+              f.properties.type === clickedFeature.properties.type &&
+              f.properties.id === clickedFeature.properties.id
+          ) || null;
+        oldFeature = clickedFeature;
+        if (!newFeature) {
+          console.warn("Did not find old feature for:", feature);
+        }
+      } else if (feature.source === "modifiedNewObjects") {
+        newFeature = clickedFeature;
+        oldFeature =
+          featuresFrom(this.props.augmentedDiff, "modified", "old").find(
+            (f) =>
+              f.properties.type === clickedFeature.properties.type &&
+              f.properties.id === clickedFeature.properties.id
+          ) || null;
+        if (!oldFeature) {
+          console.warn("Did not find old feature for:", feature);
+        }
+      } else if (feature.source === "modifiedTagsObjects") {
+        newFeature = clickedFeature;
+        oldFeature =
+          featuresFrom(this.props.augmentedDiff, "modified", "old").find(
+            (f) =>
+              f.properties.type === clickedFeature.properties.type &&
+              f.properties.id === clickedFeature.properties.id
+          ) || null;
+        if (!oldFeature) {
+          console.warn("Did not find old feature for:", feature);
+        }
+        isGeometryChanged = false;
+      } else {
+        console.warn(
+          `Clicked source ${feature.source} does not match a map source containing diff features`
+        );
+        return;
+      }
       this.props.onFeatureClick({
         action,
-        new: this.mapboxFeatureToOsmObject(feature),
-        old: null,
-        isGeometryChanged: true,
+        new: newFeature,
+        old: oldFeature,
+        isGeometryChanged,
       });
     }
   };
 
-  private mapboxFeatureToOsmObject(feature: MapboxGeoJSONFeature): OSMFeature {
+  private mapboxFeatureToOsmObject = (feature: MapboxGeoJSONFeature): OSMFeature => {
     const meta = JSON.parse(feature.properties?.meta || "{}");
     const relations = JSON.parse(feature.properties?.relations || "[]");
     const tags = JSON.parse(feature.properties?.tags || "{}");
@@ -436,7 +483,7 @@ class AugmentedDiffMap extends React.Component<MapProps> {
       },
       type: "Feature",
     };
-  }
+  };
 }
 
 export default AugmentedDiffMap;
