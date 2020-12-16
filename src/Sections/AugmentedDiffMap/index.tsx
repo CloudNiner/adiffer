@@ -394,77 +394,85 @@ class AugmentedDiffMap extends React.Component<MapProps> {
   };
 
   private onMouseClick = (event: MapLayerMouseEvent) => {
-    if (event.features?.length === 1) {
-      const feature = event.features[0];
-      console.log(feature);
-
-      var action: ADiffAction;
-      if (feature.source.includes("created")) {
-        action = ADiffAction.Create;
-      } else if (feature.source.includes("modified")) {
-        action = ADiffAction.Modify;
-      } else if (feature.source.includes("deleted")) {
-        action = ADiffAction.Delete;
-      } else {
-        console.warn(`Couldn't determine ADiffAction from ${feature.layer}`);
-        return;
-      }
-
-      const clickedFeature = this.mapboxFeatureToOsmObject(feature);
-      var newFeature: OSMFeature | null = null;
-      var oldFeature: OSMFeature | null = null;
-      var isGeometryChanged = true;
-      if (feature.source === "deletedObjects") {
-        oldFeature = clickedFeature;
-      } else if (feature.source === "createdObjects") {
-        newFeature = clickedFeature;
-      } else if (feature.source === "modifiedOldObjects") {
-        newFeature =
-          featuresFrom(this.props.augmentedDiff, "modified", "new").find(
-            (f) =>
-              f.properties.type === clickedFeature.properties.type &&
-              f.properties.id === clickedFeature.properties.id
-          ) || null;
-        oldFeature = clickedFeature;
-        if (!newFeature) {
-          console.warn("Did not find old feature for:", feature);
-        }
-      } else if (feature.source === "modifiedNewObjects") {
-        newFeature = clickedFeature;
-        oldFeature =
-          featuresFrom(this.props.augmentedDiff, "modified", "old").find(
-            (f) =>
-              f.properties.type === clickedFeature.properties.type &&
-              f.properties.id === clickedFeature.properties.id
-          ) || null;
-        if (!oldFeature) {
-          console.warn("Did not find old feature for:", feature);
-        }
-      } else if (feature.source === "modifiedTagsObjects") {
-        newFeature = clickedFeature;
-        oldFeature =
-          featuresFrom(this.props.augmentedDiff, "modified", "old").find(
-            (f) =>
-              f.properties.type === clickedFeature.properties.type &&
-              f.properties.id === clickedFeature.properties.id
-          ) || null;
-        if (!oldFeature) {
-          console.warn("Did not find old feature for:", feature);
-        }
-        isGeometryChanged = false;
-      } else {
-        console.warn(
-          `Clicked source ${feature.source} does not match a map source containing diff features`
-        );
-        return;
-      }
-      this.props.onFeatureClick({
-        action,
-        new: newFeature,
-        old: oldFeature,
-        isGeometryChanged,
-      });
+    if (event.features?.length !== 1) {
+      console.warn(`ADiffMap click skipped, found ${event.features?.length} !== 1 features!`);
+      console.warn(event.features);
+      return;
     }
+
+    const feature: MapboxGeoJSONFeature = event.features[0];
+    console.log(feature);
+
+    var action: ADiffAction;
+    if (feature.source.includes("created")) {
+      action = ADiffAction.Create;
+    } else if (feature.source.includes("modified")) {
+      action = ADiffAction.Modify;
+    } else if (feature.source.includes("deleted")) {
+      action = ADiffAction.Delete;
+    } else {
+      console.warn(`Couldn't determine ADiffAction from ${feature.layer}`);
+      return;
+    }
+
+    const clickedFeature = this.mapboxFeatureToOsmObject(feature);
+    var newFeature: OSMFeature | null = null;
+    var oldFeature: OSMFeature | null = null;
+    var isGeometryChanged;
+    if (feature.source === "deletedObjects") {
+      oldFeature = clickedFeature;
+      isGeometryChanged = true;
+    } else if (feature.source === "createdObjects") {
+      newFeature = clickedFeature;
+      isGeometryChanged = true;
+    } else if (feature.source === "modifiedOldObjects") {
+      newFeature =
+        featuresFrom(this.props.augmentedDiff, "modified", "new").find(
+          (f) =>
+            f.properties.type === clickedFeature.properties.type &&
+            f.properties.id === clickedFeature.properties.id
+        ) || null;
+      oldFeature = clickedFeature;
+      isGeometryChanged = true;
+      if (!newFeature) {
+        console.warn("Did not find old feature for:", feature);
+      }
+    } else if (feature.source === "modifiedNewObjects") {
+      newFeature = clickedFeature;
+      oldFeature =
+        featuresFrom(this.props.augmentedDiff, "modified", "old").find(
+          (f) =>
+            f.properties.type === clickedFeature.properties.type &&
+            f.properties.id === clickedFeature.properties.id
+        ) || null;
+      isGeometryChanged = true;
+      if (!oldFeature) {
+        console.warn("Did not find old feature for:", feature);
+      }
+    } else if (feature.source === "modifiedTagsObjects") {
+      newFeature = clickedFeature;
+      oldFeature =
+        featuresFrom(this.props.augmentedDiff, "modified", "old").find(
+          (f) =>
+            f.properties.type === clickedFeature.properties.type &&
+            f.properties.id === clickedFeature.properties.id
+        ) || null;
+      isGeometryChanged = false;
+      if (!oldFeature) {
+        console.warn("Did not find old feature for:", feature);
+      }
+    } else {
+      console.warn(
+        `Clicked source ${feature.source} does not match a map source containing diff features`
+      );
+      return;
+    }
+    this.props.onFeatureClick({
+      action,
+      new: newFeature,
+      old: oldFeature,
+      isGeometryChanged,
+    });
   };
 
   private mapboxFeatureToOsmObject = (feature: MapboxGeoJSONFeature): OSMFeature => {
