@@ -1,25 +1,17 @@
 import React, { useState } from "react";
 
-import { Box, Button, ButtonGroup, Divider } from "@material-ui/core";
+import { Box, Button, ButtonGroup, Divider, Modal } from "@material-ui/core";
 import { makeStyles } from "@material-ui/core/styles";
 import { DropzoneArea } from "material-ui-dropzone";
 
-import {
-  getAugmentedDiff,
-  isSequenceValid,
-  parseDiff,
-  AugmentedDiff,
-} from "./osm";
+import { getAugmentedDiff, isSequenceValid, parseDiff, AugmentedDiff, OsmObjectDiff } from "./osm";
 import ADifferLegend from "./Components/ADifferLegend";
-import ActionSelector, {
-  ActionSelectorState,
-} from "./Components/ActionSelector";
+import ActionSelector, { ActionSelectorState } from "./Components/ActionSelector";
 import Header from "./Components/Header";
 import SequenceSelector from "./Components/SequenceSelector";
 import AugmentedDiffMap from "./Sections/AugmentedDiffMap";
-import OsmObjectSelector, {
-  OsmObjectSelectorState,
-} from "./Components/OsmObjectSelector";
+import OsmObjectSelector, { OsmObjectSelectorState } from "./Components/OsmObjectSelector";
+import OsmDiffDetail from "./Components/OsmDiffDetail";
 
 const useStyles = makeStyles((theme) => ({
   divider: {
@@ -39,6 +31,17 @@ const useStyles = makeStyles((theme) => ({
   },
   mapBox: {
     flex: 1,
+  },
+  modal: {
+    position: "absolute",
+    top: "50%",
+    left: "50%",
+    transform: "translate(-50%, -50%)",
+    minWidth: 400,
+    backgroundColor: theme.palette.background.paper,
+    border: "2px solid #000",
+    boxShadow: theme.shadows[5],
+    padding: theme.spacing(2, 4, 3),
   },
   sidebarBox: {
     flex: "0 0 24em",
@@ -76,14 +79,11 @@ function App() {
     modified: [],
     deleted: [],
   });
-  const [selectedActions, setSelectedActions] = useState<ActionSelectorState>(
-    defaultActions
-  );
-  const [selectedObjects, setSelectedObjects] = useState<
-    OsmObjectSelectorState
-  >(defaultObjects);
+  const [selectedActions, setSelectedActions] = useState<ActionSelectorState>(defaultActions);
+  const [selectedObjects, setSelectedObjects] = useState<OsmObjectSelectorState>(defaultObjects);
   const [sequenceId, setSequenceId] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [selectedDiff, setSelectedDiff] = useState<OsmObjectDiff | undefined>(undefined);
 
   const isAugmentedDiffValid = !!(
     augmentedDiff.created.length ||
@@ -91,9 +91,9 @@ function App() {
     augmentedDiff.modified.length
   );
 
-  const [inputMethod, setInputMethod] = useState<"overpass" | "file">(
-    "overpass"
-  );
+  const [inputMethod, setInputMethod] = useState<"overpass" | "file">("overpass");
+
+  const handleModalClose = () => setSelectedDiff(undefined);
 
   const goButtonClicked = () => {
     setIsLoading(true);
@@ -103,8 +103,7 @@ function App() {
       .finally(() => setIsLoading(false));
   };
 
-  const onActionChanged = (state: ActionSelectorState) =>
-    setSelectedActions(state);
+  const onActionChanged = (state: ActionSelectorState) => setSelectedActions(state);
 
   const onDropzoneFilesChange = (files: File[]) => {
     if (files.length) {
@@ -122,18 +121,19 @@ function App() {
     }
   };
 
-  const onOsmObjectChanged = (state: OsmObjectSelectorState) =>
-    setSelectedObjects(state);
+  const onMapFeatureClick = (diff: OsmObjectDiff) => {
+    console.log(diff);
+    setSelectedDiff(diff);
+  };
+
+  const onOsmObjectChanged = (state: OsmObjectSelectorState) => setSelectedObjects(state);
 
   return (
     <Box className={classes.windowBox}>
       <Box mx={2} className={classes.sidebarBox}>
         <Header />
         <Box mb={2} display="flex" justifyContent="center">
-          <ButtonGroup
-            color="primary"
-            aria-label="outlined primary button group"
-          >
+          <ButtonGroup color="primary" aria-label="outlined primary button group">
             <Button
               variant={inputMethod === "overpass" ? "contained" : "outlined"}
               onClick={() => setInputMethod("overpass")}
@@ -175,20 +175,15 @@ function App() {
         {isAugmentedDiffValid && (
           <>
             <Divider className={classes.divider} />
-            <ActionSelector
-              defaultState={defaultActions}
-              onChange={onActionChanged}
-            />
-            <OsmObjectSelector
-              defaultState={defaultObjects}
-              onChange={onOsmObjectChanged}
-            />
+            <ActionSelector defaultState={defaultActions} onChange={onActionChanged} />
+            <OsmObjectSelector defaultState={defaultObjects} onChange={onOsmObjectChanged} />
           </>
         )}
       </Box>
       <AugmentedDiffMap
         augmentedDiff={augmentedDiff}
         className={classes.mapBox}
+        onFeatureClick={onMapFeatureClick}
         showActionCreate={selectedActions.create}
         showActionDelete={selectedActions.delete}
         showActionModify={selectedActions.modify}
@@ -199,6 +194,16 @@ function App() {
       <Box className={classes.legendBox}>
         <ADifferLegend />
       </Box>
+      <Modal
+        open={selectedDiff !== undefined}
+        onClose={handleModalClose}
+        aria-labelledby="osm-feature-modal-title"
+        aria-describedby="osm-feature-modal-description"
+      >
+        <div className={classes.modal}>
+          {selectedDiff !== undefined ? <OsmDiffDetail diff={selectedDiff} /> : <></>}
+        </div>
+      </Modal>
     </Box>
   );
 }

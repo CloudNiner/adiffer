@@ -1,14 +1,13 @@
-import React, { useState } from "react";
+import React from "react";
 
-import { Feature, Geometry } from "geojson";
-import ReactMapboxGl, { Layer, Source } from "react-mapbox-gl";
+import mapboxgl, { GeoJSONSource, MapboxGeoJSONFeature, MapLayerMouseEvent } from "mapbox-gl";
 
-import { AugmentedDiff, OsmObjectProperties } from "../../osm";
 import config from "../../config";
+import { ADiffAction, AugmentedDiff, OSMFeature, OsmObjectDiff, featuresFrom } from "../../osm";
 import * as filters from "./filters";
 import * as styles from "./styles";
 
-type MapProps = {
+export type MapProps = {
   augmentedDiff: AugmentedDiff;
   className?: string;
   showActionCreate: boolean;
@@ -17,223 +16,482 @@ type MapProps = {
   showNodes: boolean;
   showRelations: boolean;
   showWays: boolean;
+  onFeatureClick: (diff: OsmObjectDiff) => void;
 };
 
 if (!config.mapboxApiKey) {
   throw new Error("REACT_APP_MAPBOX_API_KEY required!");
 }
+mapboxgl.accessToken = config.mapboxApiKey;
 
-const Map = ReactMapboxGl({ accessToken: config.mapboxApiKey });
+interface HoveredFeature {
+  source: string;
+  id: number | string;
+}
 
-const AugmentedDiffMap: React.FC<MapProps> = ({
-  augmentedDiff,
-  className,
-  showActionCreate,
-  showActionDelete,
-  showActionModify,
-  showNodes,
-  showRelations,
-  showWays,
-}) => {
-  const [center] = useState<[number, number]>([0, 0]);
-  const [zoom] = useState<[number]>([2]);
+class AugmentedDiffMap extends React.Component<MapProps> {
+  private mapRef = React.createRef<HTMLDivElement>();
 
-  const selectedObjects = {
-    node: showNodes,
-    relation: showRelations,
-    way: showWays,
-  };
+  private map: mapboxgl.Map | undefined;
 
-  const created: Feature<Geometry, OsmObjectProperties>[] = showActionCreate
-    ? augmentedDiff.created
-        .map((diff) => diff.new)
-        .filter((f): f is Feature<Geometry, OsmObjectProperties> => f !== null)
-        .filter((f) => selectedObjects[f.properties.type])
-    : [];
+  private hoveredFeatures: HoveredFeature[] = [];
 
-  const deleted: Feature<Geometry, OsmObjectProperties>[] = showActionDelete
-    ? augmentedDiff.deleted
-        .map((diff) => diff.old)
-        .filter((f): f is Feature<Geometry, OsmObjectProperties> => f !== null)
-        .filter((f) => selectedObjects[f.properties.type])
-    : [];
+  componentDidMount() {
+    const map = new mapboxgl.Map({
+      container: this.mapRef.current!,
+      style: "mapbox://styles/mapbox/dark-v10??optimize=true",
+      center: [0, 0],
+      zoom: 1,
+    });
+    this.map = map;
+    map.on("load", () => {
+      // Add sources for each subset of the Augmented Diff
+      map.addSource("deletedObjects", {
+        type: "geojson",
+        data: { type: "FeatureCollection", features: [] },
+        promoteId: "id",
+      });
+      map.addSource("modifiedOldObjects", {
+        type: "geojson",
+        data: { type: "FeatureCollection", features: [] },
+        promoteId: "id",
+      });
+      map.addSource("modifiedNewObjects", {
+        type: "geojson",
+        data: { type: "FeatureCollection", features: [] },
+        promoteId: "id",
+      });
+      map.addSource("modifiedTagsObjects", {
+        type: "geojson",
+        data: { type: "FeatureCollection", features: [] },
+        promoteId: "id",
+      });
+      map.addSource("createdObjects", {
+        type: "geojson",
+        data: { type: "FeatureCollection", features: [] },
+        promoteId: "id",
+      });
 
-  const modifiedOld: Feature<Geometry, OsmObjectProperties>[] = showActionModify
-    ? augmentedDiff.modified
-        .filter((diff) => diff.isGeometryChanged)
-        .map((diff) => diff.old)
-        .filter((f): f is Feature<Geometry, OsmObjectProperties> => f !== null)
-        .filter((f) => selectedObjects[f.properties.type])
-    : [];
+      // Add layers in display order, bottom up. Render fill, then line, then points
+      map.addLayer({
+        id: "deletedObjectsFill",
+        type: "fill",
+        source: "deletedObjects",
+        filter: filters.isPolygon,
+        paint: styles.deletedLayerFillPaint,
+      });
+      map.on("mouseenter", "deletedObjectsFill", this.onMouseEnter);
+      map.on("mouseleave", "deletedObjectsFill", this.onMouseLeave);
+      map.on("mousemove", "deletedObjectsFill", this.onMouseMove);
+      map.on("click", "deletedObjectsFill", this.onMouseClick);
 
-  const modifiedNew: Feature<Geometry, OsmObjectProperties>[] = showActionModify
-    ? augmentedDiff.modified
-        .filter((diff) => diff.isGeometryChanged)
-        .map((diff) => diff.new)
-        .filter((f): f is Feature<Geometry, OsmObjectProperties> => f !== null)
-        .filter((f) => selectedObjects[f.properties.type])
-    : [];
+      map.addLayer({
+        id: "modifiedOldObjectsFill",
+        type: "fill",
+        source: "modifiedOldObjects",
+        filter: filters.isPolygon,
+        paint: styles.modifiedOldLayerFillPaint,
+      });
+      map.on("mouseenter", "modifiedOldObjectsFill", this.onMouseEnter);
+      map.on("mouseleave", "modifiedOldObjectsFill", this.onMouseLeave);
+      map.on("mousemove", "modifiedOldObjectsFill", this.onMouseMove);
+      map.on("click", "modifiedOldObjectsFill", this.onMouseClick);
 
-  const modifiedTags: Feature<
-    Geometry,
-    OsmObjectProperties
-  >[] = showActionModify
-    ? augmentedDiff.modified
-        .filter((diff) => !diff.isGeometryChanged)
-        .map((diff) => diff.new)
-        .filter((f): f is Feature<Geometry, OsmObjectProperties> => f !== null)
-        .filter((f) => selectedObjects[f.properties.type])
-    : [];
+      map.addLayer({
+        id: "modifiedNewObjectsFill",
+        type: "fill",
+        source: "modifiedNewObjects",
+        filter: filters.isPolygon,
+        paint: styles.modifiedNewLayerFillPaint,
+      });
+      map.on("mouseenter", "modifiedNewObjectsFill", this.onMouseEnter);
+      map.on("mouseleave", "modifiedNewObjectsFill", this.onMouseLeave);
+      map.on("mousemove", "modifiedNewObjectsFill", this.onMouseMove);
+      map.on("click", "modifiedNewObjectsFill", this.onMouseClick);
 
-  // Why do we render twice?
-  if (process.env.NODE_ENV === "development") {
-    console.log("created", created);
-    console.log("deleted", deleted);
-    console.log("new modified", modifiedNew);
-    console.log("old modified", modifiedOld);
+      map.addLayer({
+        id: "modifiedTagsObjectsFill",
+        type: "fill",
+        source: "modifiedTagsObjects",
+        filter: filters.isPolygon,
+        paint: styles.modifiedTagsLayerFillPaint,
+      });
+      map.on("mouseenter", "modifiedTagsObjectsFill", this.onMouseEnter);
+      map.on("mouseleave", "modifiedTagsObjectsFill", this.onMouseLeave);
+      map.on("mousemove", "modifiedTagsObjectsFill", this.onMouseMove);
+      map.on("click", "modifiedTagsObjectsFill", this.onMouseClick);
+
+      map.addLayer({
+        id: "createdObjectsFill",
+        type: "fill",
+        source: "createdObjects",
+        filter: filters.isPolygon,
+        paint: styles.createdLayerFillPaint,
+      });
+      map.on("mouseenter", "createdObjectsFill", this.onMouseEnter);
+      map.on("mouseleave", "createdObjectsFill", this.onMouseLeave);
+      map.on("mousemove", "createdObjectsFill", this.onMouseMove);
+      map.on("click", "createdObjectsFill", this.onMouseClick);
+
+      map.addLayer({
+        id: "deletedObjectsLine",
+        type: "line",
+        source: "deletedObjects",
+        filter: filters.isLine,
+        paint: styles.deletedLayerLinePaint,
+      });
+      map.on("mouseenter", "deletedObjectsLine", this.onMouseEnter);
+      map.on("mouseleave", "deletedObjectsLine", this.onMouseLeave);
+      map.on("mousemove", "deletedObjectsLine", this.onMouseMove);
+      map.on("click", "deletedObjectsLine", this.onMouseClick);
+
+      map.addLayer({
+        id: "modifiedOldObjectsLine",
+        type: "line",
+        source: "modifiedOldObjects",
+        filter: filters.isLine,
+        paint: styles.modifiedOldLayerLinePaint,
+      });
+      map.on("mouseenter", "modifiedOldObjectsLine", this.onMouseEnter);
+      map.on("mouseleave", "modifiedOldObjectsLine", this.onMouseLeave);
+      map.on("mousemove", "modifiedOldObjectsLine", this.onMouseMove);
+      map.on("click", "modifiedOldObjectsLine", this.onMouseClick);
+
+      map.addLayer({
+        id: "modifiedNewObjectsLine",
+        type: "line",
+        source: "modifiedNewObjects",
+        filter: filters.isLine,
+        paint: styles.modifiedNewLayerLinePaint,
+      });
+      map.on("mouseenter", "modifiedNewObjectsLine", this.onMouseEnter);
+      map.on("mouseleave", "modifiedNewObjectsLine", this.onMouseLeave);
+      map.on("mousemove", "modifiedNewObjectsLine", this.onMouseMove);
+      map.on("click", "modifiedNewObjectsLine", this.onMouseClick);
+
+      map.addLayer({
+        id: "modifiedTagsObjectsLine",
+        type: "line",
+        source: "modifiedTagsObjects",
+        filter: filters.isLine,
+        paint: styles.modifiedTagsLayerLinePaint,
+      });
+      map.on("mouseenter", "modifiedTagsObjectsLine", this.onMouseEnter);
+      map.on("mouseleave", "modifiedTagsObjectsLine", this.onMouseLeave);
+      map.on("mousemove", "modifiedTagsObjectsLine", this.onMouseMove);
+      map.on("click", "modifiedTagsObjectsLine", this.onMouseClick);
+
+      map.addLayer({
+        id: "createdObjectsLine",
+        type: "line",
+        source: "createdObjects",
+        filter: filters.isLine,
+        paint: styles.createdLayerLinePaint,
+      });
+      map.on("mouseenter", "createdObjectsLine", this.onMouseEnter);
+      map.on("mouseleave", "createdObjectsLine", this.onMouseLeave);
+      map.on("mousemove", "createdObjectsLine", this.onMouseMove);
+      map.on("click", "createdObjectsLine", this.onMouseClick);
+
+      map.addLayer({
+        id: "deletedObjectsCircle",
+        type: "circle",
+        source: "deletedObjects",
+        filter: filters.isPoint,
+        paint: styles.deletedLayerCirclePaint,
+      });
+      map.on("mouseenter", "deletedObjectsCircle", this.onMouseEnter);
+      map.on("mouseleave", "deletedObjectsCircle", this.onMouseLeave);
+      map.on("mousemove", "deletedObjectsCircle", this.onMouseMove);
+      map.on("click", "deletedObjectsCircle", this.onMouseClick);
+
+      map.addLayer({
+        id: "modifiedOldObjectsCircle",
+        type: "circle",
+        source: "modifiedOldObjects",
+        filter: filters.isPoint,
+        paint: styles.modifiedOldLayerCirclePaint,
+      });
+      map.on("mouseenter", "modifiedOldObjectsCircle", this.onMouseEnter);
+      map.on("mouseleave", "modifiedOldObjectsCircle", this.onMouseLeave);
+      map.on("mousemove", "modifiedOldObjectsCircle", this.onMouseMove);
+      map.on("click", "modifiedOldObjectsCircle", this.onMouseClick);
+
+      map.addLayer({
+        id: "modifiedNewObjectsCircle",
+        type: "circle",
+        source: "modifiedNewObjects",
+        filter: filters.isPoint,
+        paint: styles.modifiedNewLayerCirclePaint,
+      });
+      map.on("mouseenter", "modifiedNewObjectsCircle", this.onMouseEnter);
+      map.on("mouseleave", "modifiedNewObjectsCircle", this.onMouseLeave);
+      map.on("mousemove", "modifiedNewObjectsCircle", this.onMouseMove);
+      map.on("click", "modifiedNewObjectsCircle", this.onMouseClick);
+
+      map.addLayer({
+        id: "modifiedTagsObjectsCircle",
+        type: "circle",
+        source: "modifiedTagsObjects",
+        filter: filters.isPoint,
+        paint: styles.modifiedTagsLayerCirclePaint,
+      });
+      map.on("mouseenter", "modifiedTagsObjectsCircle", this.onMouseEnter);
+      map.on("mouseleave", "modifiedTagsObjectsCircle", this.onMouseLeave);
+      map.on("mousemove", "modifiedTagsObjectsCircle", this.onMouseMove);
+      map.on("click", "modifiedTagsObjectsCircle", this.onMouseClick);
+
+      map.addLayer({
+        id: "createdObjectsCircle",
+        type: "circle",
+        source: "createdObjects",
+        filter: filters.isPoint,
+        paint: styles.createdLayerCirclePaint,
+      });
+      map.on("mouseenter", "createdObjectsCircle", this.onMouseEnter);
+      map.on("mouseleave", "createdObjectsCircle", this.onMouseLeave);
+      map.on("mousemove", "createdObjectsCircle", this.onMouseMove);
+      map.on("click", "createdObjectsCircle", this.onMouseClick);
+    });
   }
 
-  const createdSource = {
-    type: "geojson",
-    data: { type: "FeatureCollection", features: created },
+  componentDidUpdate(prevProps: MapProps) {
+    const {
+      augmentedDiff,
+      showActionCreate,
+      showActionDelete,
+      showActionModify,
+      showNodes,
+      showWays,
+      showRelations,
+    } = this.props;
+
+    if (
+      this.map &&
+      (augmentedDiff !== prevProps.augmentedDiff ||
+        showActionCreate !== prevProps.showActionCreate ||
+        showActionDelete !== prevProps.showActionDelete ||
+        showActionModify !== prevProps.showActionModify ||
+        showNodes !== prevProps.showNodes ||
+        showWays !== prevProps.showWays ||
+        showRelations !== prevProps.showRelations)
+    ) {
+      const selectedObjects = {
+        node: showNodes,
+        relation: showRelations,
+        way: showWays,
+      };
+
+      const createdSource = this.map.getSource("createdObjects") as GeoJSONSource;
+      if (createdSource) {
+        const created: OSMFeature[] = showActionCreate
+          ? featuresFrom(augmentedDiff, "created", "new").filter(
+              (f) => selectedObjects[f.properties.type]
+            )
+          : [];
+        createdSource.setData({
+          type: "FeatureCollection",
+          features: created,
+        });
+      }
+
+      const deletedSource = this.map.getSource("deletedObjects") as GeoJSONSource;
+      if (deletedSource) {
+        const deleted: OSMFeature[] = showActionDelete
+          ? augmentedDiff.deleted
+              .map((diff) => diff.old)
+              .filter((f): f is OSMFeature => f !== null)
+              .filter((f) => selectedObjects[f.properties.type])
+          : [];
+        deletedSource.setData({
+          type: "FeatureCollection",
+          features: deleted,
+        });
+      }
+
+      const modifiedOldSource = this.map.getSource("modifiedOldObjects") as GeoJSONSource;
+      if (modifiedOldSource) {
+        const modifiedOld: OSMFeature[] = showActionModify
+          ? augmentedDiff.modified
+              .filter((diff) => diff.isGeometryChanged)
+              .map((diff) => diff.old)
+              .filter((f): f is OSMFeature => f !== null)
+              .filter((f) => selectedObjects[f.properties.type])
+          : [];
+        modifiedOldSource.setData({
+          type: "FeatureCollection",
+          features: modifiedOld,
+        });
+      }
+
+      const modifiedNewSource = this.map.getSource("modifiedNewObjects") as GeoJSONSource;
+      if (modifiedNewSource) {
+        const modifiedNew: OSMFeature[] = showActionModify
+          ? augmentedDiff.modified
+              .filter((diff) => diff.isGeometryChanged)
+              .map((diff) => diff.new)
+              .filter((f): f is OSMFeature => f !== null)
+              .filter((f) => selectedObjects[f.properties.type])
+          : [];
+        modifiedNewSource.setData({
+          type: "FeatureCollection",
+          features: modifiedNew,
+        });
+      }
+
+      const modifiedTagsSource = this.map.getSource("modifiedTagsObjects") as GeoJSONSource;
+      if (modifiedTagsSource) {
+        const modifiedTags: OSMFeature[] = showActionModify
+          ? augmentedDiff.modified
+              .filter((diff) => !diff.isGeometryChanged)
+              .map((diff) => diff.new)
+              .filter((f): f is OSMFeature => f !== null)
+              .filter((f) => selectedObjects[f.properties.type])
+          : [];
+        modifiedTagsSource.setData({
+          type: "FeatureCollection",
+          features: modifiedTags,
+        });
+      }
+    }
+  }
+
+  render() {
+    return <div ref={this.mapRef} className={this.props.className} />;
+  }
+
+  private clearHoveredFeatures = () => {
+    this.hoveredFeatures.forEach((hf) => {
+      if (this.map) {
+        this.map.removeFeatureState(hf, "hover");
+      }
+    });
+    this.hoveredFeatures = [];
   };
 
-  const deletedSource = {
-    type: "geojson",
-    data: { type: "FeatureCollection", features: deleted },
+  private onMouseEnter = (event: MapLayerMouseEvent) => {
+    if (this.map) {
+      this.map.getCanvas().style.cursor = "pointer";
+    }
   };
 
-  const modifiedNewSource = {
-    type: "geojson",
-    data: { type: "FeatureCollection", features: modifiedNew },
+  private onMouseLeave = (event: MapLayerMouseEvent) => {
+    if (this.map) {
+      this.map.getCanvas().style.cursor = "";
+      this.clearHoveredFeatures();
+    }
   };
 
-  const modifiedOldSource = {
-    type: "geojson",
-    data: { type: "FeatureCollection", features: modifiedOld },
+  private onMouseMove = (event: MapLayerMouseEvent) => {
+    this.clearHoveredFeatures();
+    event.features?.forEach((f) => {
+      if (this.map && f.id) {
+        const hoverState = { source: f.source, id: f.id };
+        this.map.setFeatureState(hoverState, { hover: true });
+        this.hoveredFeatures.push(hoverState);
+      }
+    });
   };
 
-  const modifiedTagsSource = {
-    type: "geojson",
-    data: { type: "FeatureCollection", features: modifiedTags },
+  private onMouseClick = (event: MapLayerMouseEvent) => {
+    if (event.features?.length !== 1) {
+      console.warn(`ADiffMap click skipped, found ${event.features?.length} !== 1 features!`);
+      console.warn(event.features);
+      return;
+    }
+
+    const feature: MapboxGeoJSONFeature = event.features[0];
+    console.log(feature);
+
+    var action: ADiffAction;
+    if (feature.source.includes("created")) {
+      action = ADiffAction.Create;
+    } else if (feature.source.includes("modified")) {
+      action = ADiffAction.Modify;
+    } else if (feature.source.includes("deleted")) {
+      action = ADiffAction.Delete;
+    } else {
+      console.warn(`Couldn't determine ADiffAction from ${feature.layer}`);
+      return;
+    }
+
+    const clickedFeature = this.mapboxFeatureToOsmObject(feature);
+    var newFeature: OSMFeature | null = null;
+    var oldFeature: OSMFeature | null = null;
+    var isGeometryChanged;
+    if (feature.source === "deletedObjects") {
+      oldFeature = clickedFeature;
+      isGeometryChanged = true;
+    } else if (feature.source === "createdObjects") {
+      newFeature = clickedFeature;
+      isGeometryChanged = true;
+    } else if (feature.source === "modifiedOldObjects") {
+      newFeature =
+        featuresFrom(this.props.augmentedDiff, "modified", "new").find(
+          (f) =>
+            f.properties.type === clickedFeature.properties.type &&
+            f.properties.id === clickedFeature.properties.id
+        ) || null;
+      oldFeature = clickedFeature;
+      isGeometryChanged = true;
+      if (!newFeature) {
+        console.warn("Did not find old feature for:", feature);
+      }
+    } else if (feature.source === "modifiedNewObjects") {
+      newFeature = clickedFeature;
+      oldFeature =
+        featuresFrom(this.props.augmentedDiff, "modified", "old").find(
+          (f) =>
+            f.properties.type === clickedFeature.properties.type &&
+            f.properties.id === clickedFeature.properties.id
+        ) || null;
+      isGeometryChanged = true;
+      if (!oldFeature) {
+        console.warn("Did not find old feature for:", feature);
+      }
+    } else if (feature.source === "modifiedTagsObjects") {
+      newFeature = clickedFeature;
+      oldFeature =
+        featuresFrom(this.props.augmentedDiff, "modified", "old").find(
+          (f) =>
+            f.properties.type === clickedFeature.properties.type &&
+            f.properties.id === clickedFeature.properties.id
+        ) || null;
+      isGeometryChanged = false;
+      if (!oldFeature) {
+        console.warn("Did not find old feature for:", feature);
+      }
+    } else {
+      console.warn(
+        `Clicked source ${feature.source} does not match a map source containing diff features`
+      );
+      return;
+    }
+    this.props.onFeatureClick({
+      action,
+      new: newFeature,
+      old: oldFeature,
+      isGeometryChanged,
+    });
   };
 
-  const styleUrl = `mapbox://styles/mapbox/dark-v10??optimize=true`;
-
-  return (
-    <Map center={center} className={className} style={styleUrl} zoom={zoom}>
-      <Source id="deletedObjects" geoJsonSource={deletedSource} />
-      <Layer
-        id="deletedObjectsFill"
-        sourceId="deletedObjects"
-        type="fill"
-        paint={styles.deletedLayerFillPaint}
-        filter={filters.isPolygon}
-      />
-      <Layer
-        id="deletedObjectsLine"
-        sourceId="deletedObjects"
-        type="line"
-        paint={styles.deletedLayerLinePaint}
-        filter={filters.isLine}
-      />
-      <Layer
-        id="deletedObjectsCircle"
-        sourceId="deletedObjects"
-        type="circle"
-        paint={styles.deletedLayerCirclePaint}
-        filter={filters.isPoint}
-      />
-      <Source id="createdObjects" geoJsonSource={createdSource} />
-      <Layer
-        id="createdObjectsFill"
-        sourceId="createdObjects"
-        type="fill"
-        paint={styles.createdLayerFillPaint}
-        filter={filters.isPolygon}
-      />
-      <Layer
-        id="createdObjectsLine"
-        sourceId="createdObjects"
-        type="line"
-        paint={styles.createdLayerLinePaint}
-        filter={filters.isLine}
-      />
-      <Layer
-        id="createdObjectsCircle"
-        sourceId="createdObjects"
-        type="circle"
-        paint={styles.createdLayerCirclePaint}
-        filter={filters.isPoint}
-      />
-      <Source id="modifiedOldObjects" geoJsonSource={modifiedOldSource} />
-      <Layer
-        id="modifiedOldObjectsFill"
-        sourceId="modifiedOldObjects"
-        type="fill"
-        paint={styles.modifiedOldLayerFillPaint}
-        filter={filters.isPolygon}
-      />
-      <Layer
-        id="modifiedOldObjectsLine"
-        sourceId="modifiedOldObjects"
-        type="line"
-        paint={styles.modifiedOldLayerLinePaint}
-        filter={filters.isLine}
-      />
-      <Layer
-        id="modifiedOldObjectsCircle"
-        sourceId="modifiedOldObjects"
-        type="circle"
-        paint={styles.modifiedOldLayerCirclePaint}
-        filter={filters.isPoint}
-      />
-      <Source id="modifiedNewObjects" geoJsonSource={modifiedNewSource} />
-      <Layer
-        id="modifiedNewObjectsFill"
-        sourceId="modifiedNewObjects"
-        type="fill"
-        paint={styles.modifiedNewLayerFillPaint}
-        filter={filters.isPolygon}
-      />
-      <Layer
-        id="modifiedNewObjectsLine"
-        sourceId="modifiedNewObjects"
-        type="line"
-        paint={styles.modifiedNewLayerLinePaint}
-        filter={filters.isLine}
-      />
-      <Layer
-        id="modifiedNewObjectsCircle"
-        sourceId="modifiedNewObjects"
-        type="circle"
-        paint={styles.modifiedNewLayerCirclePaint}
-        filter={filters.isPoint}
-      />
-      <Source id="modifiedTagsObjects" geoJsonSource={modifiedTagsSource} />
-      <Layer
-        id="modifiedTagsObjectsFill"
-        sourceId="modifiedTagsObjects"
-        type="fill"
-        paint={styles.modifiedTagsLayerFillPaint}
-        filter={filters.isPolygon}
-      />
-      <Layer
-        id="modifiedTagsObjectsLine"
-        sourceId="modifiedTagsObjects"
-        type="line"
-        paint={styles.modifiedTagsLayerLinePaint}
-        filter={filters.isLine}
-      />
-      <Layer
-        id="modifiedTagsObjectsCircle"
-        sourceId="modifiedTagsObjects"
-        type="circle"
-        paint={styles.modifiedTagsLayerCirclePaint}
-        filter={filters.isPoint}
-      />
-    </Map>
-  );
-};
+  private mapboxFeatureToOsmObject = (feature: MapboxGeoJSONFeature): OSMFeature => {
+    const meta = JSON.parse(feature.properties?.meta || "{}");
+    const relations = JSON.parse(feature.properties?.relations || "[]");
+    const tags = JSON.parse(feature.properties?.tags || "{}");
+    return {
+      id: `${feature.properties?.type}/${feature.properties?.id}`,
+      geometry: feature.geometry,
+      properties: {
+        id: feature.properties?.id || -1,
+        meta,
+        relations,
+        type: feature.properties?.type || "",
+        tags,
+      },
+      type: "Feature",
+    };
+  };
+}
 
 export default AugmentedDiffMap;

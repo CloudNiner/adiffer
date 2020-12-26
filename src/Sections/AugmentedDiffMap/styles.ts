@@ -5,21 +5,40 @@ import theme from "../../theme";
 export const circlePaint = (overrides: CirclePaint) => {
   const defaults: CirclePaint = {
     "circle-color": "#FFFFFF",
-    "circle-opacity": 0.2,
-    "circle-radius": 4,
-    "circle-stroke-color": "#FFFFFF",
-    "circle-stroke-width": 1,
+    "circle-opacity": 1.0,
+    "circle-radius": [
+      "case",
+      ["boolean", ["feature-state", "hover"], false],
+      5,
+      4,
+    ],
   };
   return Object.assign({}, defaults, overrides);
 };
 
 export const fillPaint = (overrides: FillPaint) => {
-  const defaults: FillPaint = { "fill-color": "#FFFFFF", "fill-opacity": 0.4 };
+  const defaults: FillPaint = {
+    "fill-color": "#FFFFFF",
+    "fill-opacity": [
+      "case",
+      ["boolean", ["feature-state", "hover"], false],
+      1,
+      0.6,
+    ],
+  };
   return Object.assign({}, defaults, overrides);
 };
 
 export const linePaint = (overrides: LinePaint) => {
-  const defaults: LinePaint = { "line-color": "#FFFFFF", "line-width": 2 };
+  const defaults: LinePaint = {
+    "line-color": "#FFFFFF",
+    "line-width": [
+      "case",
+      ["boolean", ["feature-state", "hover"], false],
+      4,
+      3,
+    ],
+  };
   return Object.assign({}, defaults, overrides);
 };
 export const createdColor = theme.palette.osm.created;

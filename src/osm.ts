@@ -18,19 +18,29 @@ export enum ADiffAction {
   Modify = "modify",
 }
 
+export interface OsmObjectMetadata {
+  uid: number;
+  user: string;
+  timestamp: string;  // ISO8601
+  version: number;
+  changeset: number;
+}
+
 export interface OsmObjectProperties {
   id: number;
-  meta: { string: string };
+  meta: OsmObjectMetadata;
   relations: any[];
   tags: { string: string };
   type: "node" | "way" | "relation";
 }
 
+export type OSMFeature = Feature<Geometry, OsmObjectProperties>;
+
 export interface OsmObjectDiff {
   action: ADiffAction;
   isGeometryChanged: boolean;
-  old: Feature<Geometry, OsmObjectProperties> | null;
-  new: Feature<Geometry, OsmObjectProperties> | null;
+  old: OSMFeature | null;
+  new: OSMFeature | null;
 }
 
 export interface AugmentedDiff extends Object {
@@ -61,6 +71,16 @@ export const isSequenceValid = (sequence: string): boolean => {
     Boolean(sequenceDate) && sequenceDate!.getTime() < new Date().getTime()
   );
 };
+
+export const featuresFrom = (
+    augmentedDiff: AugmentedDiff,
+    action: "created" | "modified" | "deleted",
+    version: "new" | "old"
+  ): OSMFeature[] => {
+    return augmentedDiff[action]
+      .map((diff) => diff[version])
+      .filter((f): f is OSMFeature => f !== null);
+  };
 
 const fetchAdiffString = (sequenceId: string): Promise<string> => {
   return fetch(
@@ -101,9 +121,15 @@ const filterObjects = (
       };
       if (oldElement && oldElement.firstElementChild) {
         diff.old = _osmtogeojson(oldElement).features[0];
+        if (diff.old) {
+          diff.old.id = `${diff.old.properties.type}/${diff.old.properties.id}`
+        }
       }
       if (newElement && newElement.firstElementChild) {
         diff.new = _osmtogeojson(newElement).features[0];
+        if (diff.new) {
+          diff.new.id = `${diff.new.properties.type}/${diff.new.properties.id}`
+        }
       }
       if (diff.old && diff.new) {
         diff.isGeometryChanged = isEqual(diff.old.geometry, diff.new.geometry);
